@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WNMP Panel</title>
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="icon" href="/assets/wnmp-panel.ico" type="image/x-icon">
+</head>
+<body>
+<div class="app-shell">
+
+    <!-- ========== 左侧边栏 ========== -->
+    <aside class="sidebar" data-role="sidebar">
+        <!-- 品牌区：W Logo + WNMP Panel -->
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-logo">
+                <img src="/assets/wnmp-panel.ico" alt="WNMP">
+            </div>
+            <div class="sidebar-brand-text">
+                <div class="sidebar-brand-name">WNMP Panel</div>
+                <div class="sidebar-brand-sub" data-i18n="sidebar.brand_sub">本地运行环境控制台</div>
+            </div>
+        </div>
+
+        <!-- 导航菜单：带内联 SVG 图标 -->
+        <nav class="sidebar-nav">
+            <a class="nav-item active" data-nav="overview">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+                <span data-i18n-text="nav.overview">环境总览</span>
+            </a>
+            <a class="nav-item" data-nav="logs">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+                <span data-i18n-text="nav.logs">运行日志</span>
+            </a>
+            <a class="nav-item" data-nav="settings">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+                <span data-i18n-text="nav.settings">设置</span>
+            </a>
+            <a class="nav-item" data-nav="about">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+                <span data-i18n-text="nav.about">关于</span>
+            </a>
+        </nav>
+
+        <!-- 语言切换区域 -->
+        <div class="sidebar-lang" data-role="sidebar-lang">
+            <div class="lang-switch-label" data-i18n="nav.language">语言</div>
+            <div class="lang-switch-group">
+                <button class="lang-switch-btn" data-lang="zh-CN">中文</button>
+                <button class="lang-switch-btn" data-lang="en-US">English</button>
+            </div>
+        </div>
+
+        <!-- 版本号显示 -->
+        <div class="sidebar-version">
+            <span class="sidebar-version-text" data-role="sidebar-version">Panel v--</span>
+        </div>
+
+        <div class="sidebar-footer" style="display:none">
+            <small data-role="sidebar-port"></small>
+        </div>
+    </aside>
+
+    <!-- ========== 右侧主区域 ========== -->
+    <main class="main-content" data-role="main-content">
+
+        <!-- 顶部 Header -->
+        <div class="topbar">
+            <div class="topbar-title-group">
+                <h1 class="topbar-title" data-role="topbar-title" data-i18n="topbar.overview">环境总览</h1>
+                <div class="topbar-subtitle" data-role="topbar-subtitle" data-i18n="topbar.subtitle">本地 Windows Web 运行环境控制台</div>
+            </div>
+            <div class="topbar-actions">
+                <span class="overall-badge" data-role="overall-badge"><span class="badge-dot"></span><span class="badge-text">--</span></span>
+            </div>
+        </div>
+
+        <!-- ========== 加载中视图 ========== -->
+        <div data-role="loading-view" style="display:block">
+            <div class="card card-loading" style="margin:24px 32px">
+                <div class="card-body">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text" data-i18n="loading.detecting">正在检测 WNMP 环境状态...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 状态错误视图 ========== -->
+        <div data-role="error-view" style="display:none">
+            <div class="card card-error" style="margin:24px 32px">
+                <div class="card-title" data-i18n="error.title">状态获取失败</div>
+                <div class="card-body">
+                    <div data-role="error-message" class="error-message">
+                        状态获取失败，请稍后重试或查看运行日志。
+                    </div>
+                    <div class="error-actions">
+                        <button data-role="btn-retry" class="btn btn-start" data-i18n="btn.retry">重试检测</button>
+                        <a data-role="link-runtime-log" href="#" class="btn btn-link" data-i18n="error.view_runtime_log">查看运行日志</a>
+                        <a data-role="link-action-log" href="#" class="btn btn-link" data-i18n="error.view_action_log">查看动作输出日志</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 初始化门控视图 - 大卡片设计 ========== -->
+        <div data-role="init-view" style="display:none">
+            <div class="card card-init">
+                <div class="card-body">
+                    <div class="init-card-layout">
+                        <!-- 左侧：配置清单+齿轮插画 -->
+                        <div class="init-card-illustration">
+                            <svg viewBox="0 0 200 200" width="180" height="180" fill="none" aria-hidden="true">
+                                <!-- 配置清单 -->
+                                <rect x="20" y="30" width="80" height="110" rx="6" fill="#e0ecff" stroke="#3b82f6" stroke-width="1.5"/>
+                                <line x1="34" y1="52" x2="86" y2="52" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+                                <line x1="34" y1="66" x2="78" y2="66" stroke="#93b4f5" stroke-width="2" stroke-linecap="round"/>
+                                <line x1="34" y1="80" x2="82" y2="80" stroke="#93b4f5" stroke-width="2" stroke-linecap="round"/>
+                                <line x1="34" y1="94" x2="70" y2="94" stroke="#93b4f5" stroke-width="2" stroke-linecap="round"/>
+                                <circle cx="40" cy="115" r="4" fill="#3b82f6"/>
+                                <circle cx="55" cy="115" r="4" fill="#93b4f5"/>
+                                <circle cx="70" cy="115" r="4" fill="#93b4f5"/>
+                                <!-- 齿轮 -->
+                                <g transform="translate(130,100)">
+                                    <circle cx="0" cy="0" r="22" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+                                    <circle cx="0" cy="0" r="10" fill="#fff" stroke="#3b82f6" stroke-width="1.5"/>
+                                    <!-- 齿轮齿 -->
+                                    <rect x="-5" y="-32" width="10" height="14" rx="3" fill="#3b82f6"/>
+                                    <rect x="-5" y="18" width="10" height="14" rx="3" fill="#3b82f6"/>
+                                    <rect x="-32" y="-5" width="14" height="10" rx="3" fill="#3b82f6"/>
+                                    <rect x="18" y="-5" width="14" height="10" rx="3" fill="#3b82f6"/>
+                                    <rect x="16" y="-24" width="10" height="14" rx="3" fill="#3b82f6" transform="rotate(45,21,-17)"/>
+                                    <rect x="-26" y="10" width="10" height="14" rx="3" fill="#3b82f6" transform="rotate(45,-21,17)"/>
+                                    <rect x="10" y="16" width="10" height="14" rx="3" fill="#3b82f6" transform="rotate(-45,15,23)"/>
+                                    <rect x="-20" y="-30" width="10" height="14" rx="3" fill="#3b82f6" transform="rotate(-45,-15,-23)"/>
+                                </g>
+                                <!-- 对勾标记 -->
+                                <circle cx="90" cy="140" r="14" fill="#16a34a"/>
+                                <polyline points="83,140 88,145 98,135" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <!-- 右侧：标题、说明、步骤、按钮 -->
+                        <div class="init-card-content">
+                            <div class="init-card-title" data-i18n="init.card_title">环境尚未初始化</div>
+                            <div class="init-card-desc" data-i18n="init.card_desc">初始化将自动生成基础配置并完成默认运行环境准备</div>
+                            <div class="init-steps">
+                                <div class="init-step">
+                                    <span class="init-step-num">1</span>
+                                    <span data-i18n="init.step1">生成 Nginx / PHP / MySQL 配置文件</span>
+                                </div>
+                                <div class="init-step">
+                                    <span class="init-step-num">2</span>
+                                    <span data-i18n="init.step2">创建默认站点与运行目录</span>
+                                </div>
+                                <div class="init-step">
+                                    <span class="init-step-num">3</span>
+                                    <span data-i18n="init.step3">生成本地开发证书</span>
+                                </div>
+                                <div class="init-step">
+                                    <span class="init-step-num">4</span>
+                                    <span data-i18n="init.step4">初始化 MySQL 数据目录与 root 初始密码</span>
+                                </div>
+                                <div class="init-step">
+                                    <span class="init-step-num">5</span>
+                                    <span data-i18n="init.step5">启动所有核心服务</span>
+                                </div>
+                            </div>
+                            <div class="init-card-actions">
+                                <button data-action="init_env" class="btn btn-init" data-role="btn-init-env">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                    <span data-i18n="btn.init_env">初始化环境</span>
+                                </button>
+                            </div>
+                            <div data-role="init-result" class="init-result" style="display:none" aria-hidden="true"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 未初始化时的模块卡片 -->
+            <div class="services-grid" data-role="init-modules-grid">
+                <!-- 由 app.js renderInitModules 动态渲染 -->
+            </div>
+        </div>
+
+        <!-- ========== Dashboard 视图（三张组件卡片） ========== -->
+        <div data-role="dashboard-view" style="display:none">
+            <!-- 环境级操作工具栏 -->
+            <div class="action-toolbar" data-role="action-toolbar" style="display:none">
+                <span class="toolbar-label" data-i18n="toolbar.title">环境操作</span>
+                <div class="toolbar-group toolbar-primary">
+                    <button data-action="start_env" class="btn btn-start" data-i18n="btn.start_all">全部启动</button>
+                    <button data-action="stop_env" class="btn btn-stop" data-i18n="btn.stop_all">全部停止</button>
+                    <button data-action="restart_env" class="btn btn-restart" data-i18n="btn.restart_all">全部重启</button>
+                    <button data-action="open_site" class="btn btn-open"><svg class="btn-open-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span data-i18n="btn.open_site">打开默认站点</span></button>
+                </div>
+                <div class="toolbar-group toolbar-danger">
+                    <button data-action="reset_config" class="btn btn-warning"><svg class="btn-warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 2v6h6"/><path d="M21.5 22v-6h-6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3"/><path d="M22 12.5a10 10 0 0 1-18.8 4.2"/></svg><span data-i18n="btn.reset_config">重置配置</span></button>
+                </div>
+            </div>
+
+            <!-- 动作结果提示（Flash Toast fallback） -->
+            <div class="action-result" data-role="action-result" style="display:none" aria-hidden="true">
+                <span data-role="action-result-content"></span>
+            </div>
+
+            <div class="services-grid" data-role="services-grid">
+                <!-- 三张服务卡片由 app.js 的 renderDashboard 动态渲染 -->
+            </div>
+
+            <!-- 环境信息模块容器（三卡片下方独立区域） -->
+            <div data-role="env-info-container"></div>
+        </div><!-- /dashboard-view -->
+
+        <!-- ========== 日志视图 ========== -->
+        <div data-role="log-view" style="display:none">
+            <div class="log-tabs">
+                <button class="log-tab active" data-log-tab="runtime" data-i18n="log.runtime">运行日志</button>
+                <button class="log-tab" data-log-tab="action" data-i18n="log.action">动作输出日志</button>
+            </div>
+            <div class="log-content">
+                <pre data-role="log-pre">加载中...</pre>
+            </div>
+            <div class="log-actions">
+                <button data-role="btn-refresh-log" class="btn btn-link" data-i18n="btn.refresh">刷新</button>
+            </div>
+        </div>
+
+        <!-- ========== 设置视图 ========== -->
+        <div data-role="settings-view" style="display:none">
+            <div class="card">
+                <div class="card-title" data-i18n="settings.autostart">开机自启动</div>
+                <div class="card-body">
+                    <div class="autostart-row">
+                        <span class="autostart-label" data-i18n="settings.autostart_status">状态：</span>
+                        <span class="autostart-status" data-role="autostart-status">检测中...</span>
+                    </div>
+                    <div class="autostart-actions">
+                        <button data-action="install_autostart" class="btn btn-start btn-sm" data-i18n="btn.enable_autostart">启用开机自启动</button>
+                        <button data-action="uninstall_autostart" class="btn btn-stop btn-sm" data-i18n="btn.disable_autostart">关闭开机自启动</button>
+                        <button data-role="btn-autostart-refresh" class="btn btn-link btn-sm" data-i18n="btn.refresh_status">刷新状态</button>
+                    </div>
+                    <div data-role="autostart-gate-hint" class="msg-error" style="display:none;margin-top:8px;font-size:12px" data-i18n="settings.autostart_gate_hint">请先完成环境初始化，再启用开机自启动。未初始化时启用可能导致 MySQL 初始密码无法显示。</div>
+                    <div data-role="autostart-detail" class="autostart-detail" style="display:none;margin-top:8px;font-size:12px;color:#666"></div>
+                    <div data-role="autostart-result" class="autostart-result" style="display:none" aria-hidden="true"></div>
+                </div>
+            </div>
+            <div class="card" style="margin-top:16px">
+                <div class="card-title" data-i18n="settings.panel_exit">Panel 自动退出</div>
+                <div class="card-body">
+                    <p class="settings-hint" data-i18n="settings.panel_exit_hint1">关闭所有 Panel 页面后，Panel Server 将在约 60 秒后自动退出；页面只是切到后台不会退出；Nginx/PHP/MySQL 不受影响。</p>
+                    <p class="settings-hint" data-i18n="settings.panel_exit_hint2">再次双击 WNMPPanel.exe 即可重新打开控制面板。</p>
+                </div>
+            </div>
+            <!-- 配置文件编辑区域 -->
+            <div class="card" style="margin-top:16px">
+                <div class="card-title" data-i18n="settings.config_editor">配置文件编辑</div>
+                <div class="card-body">
+                    <div class="config-editor-tabs">
+                        <button class="config-tab active" data-config-name="nginx" data-i18n="settings.config_tab_nginx">Nginx 主配置</button>
+                        <button class="config-tab" data-config-name="nginx-site" data-i18n="settings.config_tab_nginx_site">Nginx 站点</button>
+                        <button class="config-tab" data-config-name="php" data-i18n="settings.config_tab_php">PHP</button>
+                        <button class="config-tab" data-config-name="php-cgi" data-i18n="settings.config_tab_phpcgi">PHP-CGI</button>
+                        <button class="config-tab" data-config-name="mysql" data-i18n="settings.config_tab_mysql">MySQL</button>
+                        <button class="config-tab config-tab-runtime" data-config-name="runtime" data-i18n="settings.config_tab_runtime">面板配置 runtime.ini</button>
+                    </div>
+                    <!-- runtime.ini 编辑提示区 -->
+                    <div class="config-runtime-hint" data-role="config-runtime-hint" style="display:none">
+                        <div class="runtime-hint-title" data-i18n="settings.runtime_hint_title">面板配置 / runtime.ini</div>
+                        <p data-i18n="settings.runtime_hint_1">runtime.ini 控制 Panel/运行器/初始化默认值/自动启动等面板级配置；初始化后 Nginx/PHP/MySQL 的真实运行端口以各自配置文件为准。</p>
+                        <p data-i18n="settings.runtime_hint_2">HTTP_PORT / HTTPS_PORT 不会自动覆盖已生成的 Nginx 站点配置；修改 Nginx 实际监听端口请编辑 Nginx 站点配置并重载/重启 Nginx。PHP_CGI_PORT / MYSQL_PORT 同理，以组件实际配置为准。</p>
+                        <p data-i18n="settings.runtime_hint_3">修改 Panel 端口、Panel host、自动打开浏览器等设置后需重启面板生效。</p>
+                    </div>
+                    <div class="config-editor-area" data-role="config-editor-area">
+                        <textarea class="config-textarea" data-role="config-textarea" spellcheck="false" data-i18n-placeholder="settings.config_placeholder" placeholder="点击上方标签加载配置文件"></textarea>
+                    </div>
+                    <div class="config-editor-actions">
+                        <button data-role="btn-config-save" class="btn btn-start btn-sm" disabled data-i18n="btn.save">保存</button>
+                        <button data-role="btn-config-reload" class="btn btn-link btn-sm" disabled data-i18n="btn.reload_file">重新加载原文件</button>
+                        <span class="config-editor-status" data-role="config-editor-status" style="display:none" aria-hidden="true"></span>
+                    </div>
+                    <p class="settings-hint" style="margin-top:8px" data-i18n="settings.config_save_hint">组件配置保存后需重启对应组件或环境生效；runtime.ini 仅控制面板级选项，保存后部分设置需重启面板生效。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 关于视图 ========== -->
+        <div data-role="about-view" style="display:none">
+            <!-- 1. 产品信息卡片 -->
+            <div class="card about-version-card">
+                <div class="card-title" data-i18n="about.product_info">产品信息</div>
+                <div class="card-body">
+                    <div class="about-product-header">
+                        <span class="about-icon about-icon-product">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        </span>
+                        <div class="about-product-text">
+                            <div class="about-product-name" data-role="about-panel-name">WNMP Runtime Panel</div>
+                            <div class="about-product-desc" data-i18n="about.product_desc">本地 Windows Web 运行环境控制面板</div>
+                        </div>
+                    </div>
+                    <div class="about-info-rows">
+                        <div class="about-info-row">
+                            <span class="about-icon about-icon-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                            </span>
+                            <span class="about-info-label" data-i18n="about.panel_version">Panel 版本</span>
+                            <span class="about-info-value about-version-highlight" data-role="about-panel-version">--</span>
+                        </div>
+                        <div class="about-info-row">
+                            <span class="about-icon about-icon-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+                            </span>
+                            <span class="about-info-label" data-i18n="about.build_id">构建标识</span>
+                            <span class="about-info-value" data-role="about-build-date">--</span>
+                        </div>
+                        <div class="about-info-row">
+                            <span class="about-icon about-icon-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                            </span>
+                            <span class="about-info-label" data-i18n="about.support_os">支持系统</span>
+                            <span class="about-info-value about-info-value--sm" data-i18n="about.support_os_value">Windows 10 / 11，Windows Server 2016 及以上</span>
+                        </div>
+                        <div class="about-info-row">
+                            <span class="about-icon about-icon-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            </span>
+                            <span class="about-info-label" data-i18n="about.run_mode">运行模式</span>
+                            <span class="about-info-value about-info-value--sm" data-i18n="about.run_mode_value">本机面板，默认监听 127.0.0.1</span>
+                        </div>
+                    </div>
+                    <div class="about-version-note">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <span data-i18n="about.version_note">此版本号为 Panel 控制面板自身版本，不是 Nginx / PHP / MySQL / Python 的组件版本。</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 快速使用卡片 -->
+            <div class="card about-quickstart-card">
+                <div class="card-title" data-i18n="about.quick_start">快速使用</div>
+                <div class="card-body">
+                    <ol class="about-quickstart-list">
+                        <li data-i18n="about.quick_start_1">将 Nginx / PHP / MySQL 二进制文件放入对应 bin 目录</li>
+                        <li data-i18n="about.quick_start_2">首次打开面板后点击"初始化环境"生成默认配置</li>
+                        <li data-i18n="about.quick_start_3">初始化完成后可在首页启动、停止、重启各组件</li>
+                        <li data-i18n="about.quick_start_4">配置文件统一存放在 config 目录，建议通过面板编辑</li>
+                        <li data-i18n="about.quick_start_5">Nginx 独立站点配置请放入 config\nginx\vhosts\ 目录，文件内容通常是完整 server { ... } 配置块</li>
+                        <li data-i18n="about.quick_start_6">如启用开机自启动，面板会创建 Windows 计划任务</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- 3. 关键路径卡片 -->
+            <div class="card about-path-card">
+                <div class="card-title" data-i18n="about.key_paths">关键路径</div>
+                <div class="card-body">
+                    <div class="about-info-rows">
+                        <div class="about-info-row">
+                            <span class="about-icon about-icon-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                            </span>
+                            <span class="about-info-label" data-i18n="about.root_dir">项目根目录</span>
+                            <span class="about-info-value about-path-value" data-role="about-root-dir" title="">--</span>
+                        </div>
+                        <div class="about-info-row">
+                            <span class="about-icon about-icon-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                            </span>
+                            <span class="about-info-label" data-i18n="about.panel_port">Panel 端口</span>
+                            <span class="about-info-value" data-role="about-panel-port">--</span>
+                        </div>
+                        <div class="about-info-row">
+                            <span class="about-icon about-icon-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            </span>
+                            <span class="about-info-label" data-i18n="about.config_dir">配置目录</span>
+                            <span class="about-info-value about-path-value" data-role="about-config-dir" title="">--</span>
+                        </div>
+                        <div class="about-info-row">
+                            <span class="about-icon about-icon-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            </span>
+                            <span class="about-info-label" data-i18n="about.logs_dir">运行日志</span>
+                            <span class="about-info-value about-path-value" data-role="about-logs-dir" title="">--</span>
+                        </div>
+                        <div class="about-info-row">
+                            <span class="about-icon about-icon-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            </span>
+                            <span class="about-info-label" data-i18n="about.www_dir">默认站点</span>
+                            <span class="about-info-value about-path-value" data-role="about-www-dir" title="">--</span>
+                        </div>
+                        <div class="about-info-row">
+                            <span class="about-icon about-icon-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                            </span>
+                            <span class="about-info-label" data-i18n="about.vhosts_dir">站点配置</span>
+                            <span class="about-info-value about-path-value" data-role="about-vhosts-dir" title="">--</span>
+                        </div>
+                    </div>
+                    <!-- 开发与排错小提示（弱化展示） -->
+                    <div class="about-dev-tip">
+                        <span class="about-dev-tip-label" data-i18n="about.dev_tip">开发与排错</span>
+                        <p><span data-i18n="about.dev_tip_cli">开发排错使用：</span><code>bin\python\python.exe runtime\wnmpctl.py</code></p>
+                        <p><span data-i18n="about.dev_tip_port">默认端口来自 </span><code>config\runtime.ini</code><span data-i18n="about.dev_tip_port_suffix"> 的 PANEL_PORT</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. 相关链接卡片 -->
+            <div class="card about-links-card">
+                <div class="card-title" data-i18n="about.related_links">相关链接</div>
+                <div class="card-body">
+                    <div class="about-links-rows">
+                        <div class="about-link-row">
+                            <span class="about-link-label" data-i18n="about.project_website">项目官网</span>
+                            <a class="about-link-url" href="https://dacat.cc/wnmp.html" target="_blank" rel="noopener noreferrer">WNMP Runtime Panel</a>
+                        </div>
+                        <div class="about-link-row">
+                            <span class="about-link-label" data-i18n="about.tech_support">技术支持</span>
+                            <a class="about-link-url" href="https://dacat.cc" target="_blank" rel="noopener noreferrer">DaCat</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- ========== MySQL 初始密码一次性模态框 ========== -->
+    <div class="modal-overlay" data-role="mysql-password-modal" style="display:none">
+        <div class="modal-card">
+            <div class="modal-title" data-i18n="modal.mysql_pwd_title">MySQL Root 初始密码</div>
+            <div class="modal-body">
+                <div class="mysql-pwd-highlight">
+                    <strong data-i18n="modal.mysql_pwd_hint">关闭后将无法再次查看此密码，请确认已保存。</strong>
+                </div>
+                <div class="mysql-pwd-value-row">
+                    <code data-role="mysql-pwd-value-modal"></code>
+                </div>
+                <small class="pwd-hint" data-i18n="modal.mysql_pwd_note">密码仅本次显示，不会写入日志或长期保存。请妥善保管。</small>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-link btn-sm" data-role="btn-copy-pwd-modal" data-i18n="btn.copy_pwd">复制密码</button>
+                <button class="btn btn-stop btn-sm" data-role="btn-hide-pwd-modal" data-i18n="btn.hide_pwd">我已复制并保存，关闭</button>
+            </div>
+        </div>
+    </div>
+
+    </main><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<!-- Flash Toast 容器 -->
+<div id="flash-toast-container"></div>
+
+<!-- JS 资源 -->
+<script src="/assets/i18n.js"></script>
+<script src="/assets/app.js"></script>
+</body>
+</html>
