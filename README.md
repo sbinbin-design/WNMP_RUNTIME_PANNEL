@@ -92,7 +92,19 @@ WNMP_RUNTIME/
 │   ├── nginx/                 # Nginx 配置及扩展目录
 │   ├── php/                   # PHP 配置
 │   └── mysql/                 # MySQL 配置
-├── bin/                       # 用户放置的二进制文件（Python/Nginx/PHP/MySQL/OpenSSL）
+├── bin/                       # 二进制文件目录
+│   ├── python/                # Python 运行时（必需）
+│   │   └── python.exe
+│   ├── nginx/                  # Nginx Web 服务器
+│   │   └── nginx.exe
+│   ├── php/                    # PHP 运行时
+│   │   ├── php.exe             # PHP CLI
+│   │   └── php-cgi.exe         # PHP-CGI FastCGI 进程
+│   ├── mysql/                  # MySQL 数据库
+│   │   └── bin/
+│   │       └── mysqld.exe      # MySQL 服务器
+│   └── openssl/                # OpenSSL 工具（可选）
+│       └── openssl.exe
 ├── www/                       # 默认站点目录（初始化时生成）
 ├── data/mysql/                # MySQL 数据目录（初始化时生成）
 ├── logs/                      # 运行日志目录
