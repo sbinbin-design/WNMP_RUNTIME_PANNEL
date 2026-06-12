@@ -281,3 +281,6 @@ Panel Server 日志：`logs\panel\panel_server.log`；运行时日志：`logs\ru
 
 - **项目官网**：[https://dacat.cc/wnmp.html](https://dacat.cc/wnmp.html)
 - **技术支持 / 作者主页**：[https://dacat.cc](https://dacat.cc)
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
