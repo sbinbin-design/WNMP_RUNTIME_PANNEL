@@ -2240,4 +2240,58 @@ body {
     .modal-actions .btn {
         margin-left: 6px;
     }
+
+    /* Toast 容器：IE11 不支持 column-reverse 和 gap */
+    #flash-toast-container {
+        display: block;
+    }
+
+    /* Toast 本体：IE11 固定安全宽度，防止宽度塌陷 */
+    .flash-toast {
+        display: block;
+        width: 280px;
+        min-width: 260px;
+        max-width: 360px;
+        box-sizing: border-box;
+        margin-bottom: 8px;
+        writing-mode: horizontal-tb;
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: break-word;
+        line-height: 1.5;
+    }
+
+    /* Toast 图标：IE11 用 float 占位，去掉被忽略的 display:inline-block */
+    .flash-toast-icon {
+        float: left;
+        width: 20px;
+        min-width: 20px;
+        margin-right: 8px;
+        text-align: center;
+        line-height: 1.5;
+    }
+
+    /* Toast 文本：IE11 用 block，防止宽度塌陷 */
+    .flash-toast-body {
+        display: block;
+        overflow: hidden;
+    }
+
+    /* Toast 关闭按钮：IE11 用 inline-block */
+    .flash-toast-close {
+        display: inline-block;
+        vertical-align: top;
+        margin-left: 4px;
+    }
+
+    /* Toast 动画：IE11 禁用 transform 动画，避免不可见 */
+    .flash-toast {
+        animation: none;
+        opacity: 1;
+    }
+    .flash-toast-out {
+        animation: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
 }

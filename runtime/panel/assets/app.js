@@ -148,9 +148,15 @@
         if (!el || el.classList.contains('flash-toast-out')) return;
         if (el._flashTimer) { clearTimeout(el._flashTimer); el._flashTimer = null; }
         el.classList.add('flash-toast-out');
+        // IE11 兼容：animation 被禁用时 animationend 不触发，用 setTimeout 兜底移除
+        var removed = false;
         el.addEventListener('animationend', function () {
+            removed = true;
             if (el.parentNode) el.parentNode.removeChild(el);
         });
+        setTimeout(function () {
+            if (!removed && el.parentNode) el.parentNode.removeChild(el);
+        }, 400);
     }
 
     // --- View switching ---

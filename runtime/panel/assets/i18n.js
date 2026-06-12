@@ -209,8 +209,8 @@
 
         // MySQL 密码模态框
         'modal.mysql_pwd_title': 'MySQL Root 初始密码',
-        'modal.mysql_pwd_hint': '关闭后将无法再次查看此密码，请确认已保存。',
-        'modal.mysql_pwd_note': '密码仅本次显示，不会写入日志或长期保存。请妥善保管。',
+        'modal.mysql_pwd_hint': '密码仅在本弹窗中自动显示一次，请立即复制并妥善保存；关闭后面板不会再次显示该密码。',
+        'modal.mysql_pwd_note': '密码仅在本弹窗中自动显示一次，请立即复制并妥善保存；关闭后面板不会再次显示该密码。',
 
         // Toast / Flash
         'toast.copied': '已复制',
@@ -563,8 +563,8 @@
 
         // MySQL 密码模态框
         'modal.mysql_pwd_title': 'MySQL Root Initial Password',
-        'modal.mysql_pwd_hint': 'You will not be able to view this password again after closing. Please make sure it has been saved.',
-        'modal.mysql_pwd_note': 'Password is shown only once. It is not logged or stored long-term. Please keep it safe.',
+        'modal.mysql_pwd_hint': 'The password is shown automatically in this dialog only once. Please copy and store it safely; it will not be shown again after the dialog is closed.',
+        'modal.mysql_pwd_note': 'The password is shown automatically in this dialog only once. Please copy and store it safely; it will not be shown again after the dialog is closed.',
 
         // Toast / Flash
         'toast.copied': 'Copied',
