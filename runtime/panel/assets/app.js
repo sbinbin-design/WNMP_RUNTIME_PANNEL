@@ -1477,7 +1477,9 @@
 
         if (password) {
             pwdValue.textContent = password;
-            modal.style.display = 'flex';
+            // IE11 兼容：使用 block 而非 flex，CSS 中 IE11 fallback 通过 absolute+transform 居中
+            modal.style.display = 'block';
+            modal.classList.add('is-visible');
         }
     }
 
@@ -2034,7 +2036,7 @@
             var modal = qs('[data-role="mysql-password-modal"]');
             var pwdVal = qs('[data-role="mysql-pwd-value-modal"]');
             if (pwdVal) pwdVal.textContent = ''; // 清空密码，不留 DOM 残留
-            if (modal) { modal.style.display = 'none'; }
+            if (modal) { modal.style.display = 'none'; modal.classList.remove('is-visible'); }
             return;
         }
 

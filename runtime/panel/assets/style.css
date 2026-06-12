@@ -1235,13 +1235,21 @@ body {
 /* ===== MySQL Password Modal ===== */
 .modal-overlay {
     position: fixed;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     background: rgba(0,0,0,0.4);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     backdrop-filter: blur(4px);
+}
+
+/* 现代浏览器：is-visible 时使用 flex 居中 */
+.modal-overlay.is-visible {
+    display: flex;
 }
 
 .modal-card {
@@ -1251,6 +1259,21 @@ body {
     max-width: 480px;
     width: 90%;
     padding: 28px;
+    /* IE11 兼容：不依赖 flex 居中，提供 absolute + transform fallback */
+    position: relative;
+}
+
+/* IE11 兼容：modal 弹窗居中 fallback，不依赖 flex align-items/justify-content */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+    .modal-overlay.is-visible {
+        display: block;
+    }
+    .modal-card {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+    }
 }
 
 .modal-title {
@@ -2112,4 +2135,109 @@ body {
 .main-content::-webkit-scrollbar-thumb:hover,
 .log-content::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
+}
+
+/* ===== IE11 兼容 fallback ===== */
+/* 使用 -ms-high-contrast media hack，仅在 IE10/IE11 生效，不影响 Chrome/Edge/Firefox */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+    /* 服务卡片网格：改为 block 单列纵向布局 */
+    .services-grid {
+        display: block;
+    }
+    .services-grid .module-card {
+        display: block;
+        width: auto;
+        max-width: none;
+        box-sizing: border-box;
+        margin-bottom: 16px;
+    }
+
+    /* 指标区 2x2 网格：改为 block 纵向排列 */
+    .module-card__metrics {
+        display: block;
+    }
+    .module-card__metric-cell {
+        display: block;
+        width: auto;
+        box-sizing: border-box;
+    }
+
+    /* 环境信息网格：改为 block 单列纵向布局 */
+    .env-info-grid {
+        display: block;
+    }
+    .env-info-card {
+        display: block;
+        width: auto;
+        max-width: none;
+        box-sizing: border-box;
+        margin-bottom: 16px;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+    }
+
+    /* 环境信息卡片头部：保留 flex 但不用 gap */
+    .env-info-card-header {
+        display: block;
+    }
+    .env-info-card-title {
+        display: inline-block;
+        margin-right: 8px;
+    }
+
+    /* 状态标签：不用 inline-flex gap，改用 inline-block + margin */
+    .env-info-status {
+        display: inline-block;
+    }
+    .env-info-status .badge-dot {
+        margin-right: 5px;
+    }
+
+    /* 路径文本：允许换行，避免 125%/150% 缩放长路径挤压 */
+    .env-info-path {
+        white-space: normal;
+        word-break: break-all;
+        overflow-wrap: break-word;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    /* 环境信息说明文字：允许换行 */
+    .env-info-item-desc {
+        word-break: break-all;
+        overflow-wrap: break-word;
+    }
+
+    /* 环境信息操作按钮：不用 flex gap，改用 margin */
+    .env-info-actions {
+        display: block;
+    }
+    .env-info-button {
+        display: inline-block;
+        margin-right: 6px;
+        margin-bottom: 6px;
+    }
+
+    /* 旧版 cards-grid：改为 block */
+    .cards-grid {
+        display: block;
+    }
+    .cards-grid .module-card {
+        display: block;
+        width: auto;
+        max-width: none;
+        box-sizing: border-box;
+        margin-bottom: 16px;
+    }
+
+    /* modal-actions：不用 flex gap */
+    .modal-actions {
+        display: block;
+        text-align: right;
+    }
+    .modal-actions button,
+    .modal-actions .btn {
+        margin-left: 6px;
+    }
 }
