@@ -1477,8 +1477,9 @@
 
         if (password) {
             pwdValue.textContent = password;
-            // IE11 兼容：使用 block 而非 flex，CSS 中 IE11 fallback 通过 absolute+transform 居中
-            modal.style.display = 'block';
+            // IE11 兼容：清空 inline display，由 CSS is-visible class 控制显示
+            // 现代浏览器 .is-visible -> display:flex；IE11 fallback -> display:block + absolute 居中
+            modal.style.display = '';
             modal.classList.add('is-visible');
         }
     }
