@@ -67,8 +67,12 @@
     var envInfoLastLoadTime = 0;       // 上次加载完成时间戳，用于节流
 
     // --- DOM helpers ---
-    function qsa(sel) { return [].slice.call(document.querySelectorAll(sel)); }
+    // IE11 兼容：qsa 支持 root 参数，使用 WNMPCompat.toArray 兼容 IE11 NodeList
+    function qsa(sel, root) { return WNMPCompat.toArray((root || document).querySelectorAll(sel)); }
     function qs(sel) { return document.querySelector(sel); }
+
+    // --- IE11 兼容：closest 事件代理 helper，兼容文本节点 ---
+    function closestTarget(e, selector) { return WNMPCompat.closest(e.target || e.srcElement, selector); }
 
     // --- Flash Toast 统一提示 ---
     var FLASH_TOAST_MAX = 5; // 队列上限
@@ -256,7 +260,8 @@
         }
 
         qsa('.nav-item').forEach(function (item) {
-            item.classList.toggle('active', item.getAttribute('data-nav') === nav);
+            // IE11 兼容：使用 WNMPCompat.toggleClass 替代 classList.toggle 第二参数
+            WNMPCompat.toggleClass(item, 'active', item.getAttribute('data-nav') === nav);
         });
     }
 
@@ -803,7 +808,8 @@
 
         // 更新 tab 激活状态
         qsa('.config-tab').forEach(function (tab) {
-            tab.classList.toggle('active', tab.getAttribute('data-config-name') === name);
+            // IE11 兼容：使用 WNMPCompat.toggleClass 替代 classList.toggle 第二参数
+            WNMPCompat.toggleClass(tab, 'active', tab.getAttribute('data-config-name') === name);
         });
 
         var xhr = new XMLHttpRequest();
@@ -1085,7 +1091,7 @@
         // 首次加载没有 prevStatusData，直接使用原始数据
         if (!prevStatusData || !prevStatusData.initialized) return data;
 
-        var safeData = Object.assign({}, data);
+        var safeData = WNMPCompat.assign({}, data);
         var changed = false;
         // 兼容中英文旧后缀的正则
         var _notRefreshedRe = / \(状态未刷新\)$| \(not refreshed\)$/;
@@ -1095,13 +1101,13 @@
             var notRefreshedSuffix = i18n.t('status.not_refreshed');
             // 组件字段缺失：保留上一轮该组件状态
             if (!newSt && prevSt) {
-                safeData[svc] = Object.assign({}, prevSt, { message: (prevSt.message || '').replace(_notRefreshedRe, '') + notRefreshedSuffix });
+                safeData[svc] = WNMPCompat.assign({}, prevSt, { message: (prevSt.message || '').replace(_notRefreshedRe, '') + notRefreshedSuffix });
                 changed = true;
                 return;
             }
             // 新状态为 unknown 且上一轮是明确状态：保留上一轮状态，追加"状态未刷新"
             if (newSt && newSt.state === 'unknown' && prevSt && prevSt.state && _DEFINITE_STATES[prevSt.state]) {
-                safeData[svc] = Object.assign({}, prevSt, { message: (prevSt.message || '').replace(_notRefreshedRe, '') + notRefreshedSuffix });
+                safeData[svc] = WNMPCompat.assign({}, prevSt, { message: (prevSt.message || '').replace(_notRefreshedRe, '') + notRefreshedSuffix });
                 changed = true;
                 return;
             }
@@ -1869,7 +1875,8 @@
         pre.textContent = i18n.t('log.loading');
 
         qsa('.log-tab').forEach(function (tab) {
-            tab.classList.toggle('active', tab.getAttribute('data-log-tab') === type);
+            // IE11 兼容：使用 WNMPCompat.toggleClass 替代 classList.toggle 第二参数
+            WNMPCompat.toggleClass(tab, 'active', tab.getAttribute('data-log-tab') === type);
         });
 
         var apiUrl = type === 'action' ? '/api/logs/action?lines=200' : '/api/logs/runtime?lines=200';
@@ -1896,7 +1903,7 @@
     // --- Event delegation ---
     document.addEventListener('click', function (e) {
         // 语言切换按钮
-        var langBtn = e.target.closest('.lang-switch-btn');
+        var langBtn = closestTarget(e, '.lang-switch-btn');
         if (langBtn) {
             var lang = langBtn.getAttribute('data-lang');
             if (lang && typeof i18n !== 'undefined' && i18n.setLang) {
@@ -1927,7 +1934,7 @@
         }
 
         // Sidebar navigation
-        var navItem = e.target.closest('.nav-item');
+        var navItem = closestTarget(e, '.nav-item');
         if (navItem) {
             e.preventDefault();
             var nav = navItem.getAttribute('data-nav');
@@ -1942,7 +1949,7 @@
         }
 
         // Action buttons
-        var actionBtn = e.target.closest('button[data-action]');
+        var actionBtn = closestTarget(e, 'button[data-action]');
         if (actionBtn && !actionBtn.disabled) {
             var action = actionBtn.getAttribute('data-action');
             // 重置配置：二次确认，取消不执行
@@ -1956,14 +1963,14 @@
         }
 
         // Autostart refresh button (GET /api/autostart/status, not via action lock)
-        var autostartRefreshBtn = e.target.closest('[data-role="btn-autostart-refresh"]');
+        var autostartRefreshBtn = closestTarget(e, '[data-role="btn-autostart-refresh"]');
         if (autostartRefreshBtn && !autostartRefreshBtn.disabled) {
             doAutostartStatus();
             return;
         }
 
         // Version buttons
-        var versionBtn = e.target.closest('[data-role="btn-version"]');
+        var versionBtn = closestTarget(e, '[data-role="btn-version"]');
         if (versionBtn && !versionBtn.disabled) {
             var component = versionBtn.getAttribute('data-version-component');
             if (component) queryVersion(component);
@@ -1971,7 +1978,7 @@
         }
 
         // Config editor tabs
-        var configTab = e.target.closest('.config-tab');
+        var configTab = closestTarget(e, '.config-tab');
         if (configTab) {
             var configName = configTab.getAttribute('data-config-name');
             if (configName) loadConfigFile(configName);
@@ -1979,19 +1986,19 @@
         }
 
         // Config save
-        if (e.target.closest('[data-role="btn-config-save"]')) {
+        if (closestTarget(e, '[data-role="btn-config-save"]')) {
             saveConfigFile();
             return;
         }
 
         // Config reload
-        if (e.target.closest('[data-role="btn-config-reload"]')) {
+        if (closestTarget(e, '[data-role="btn-config-reload"]')) {
             loadConfigFile(currentConfigName);
             return;
         }
 
         // MySQL password: copy (modal)
-        if (e.target.closest('[data-role="btn-copy-pwd-modal"]')) {
+        if (closestTarget(e, '[data-role="btn-copy-pwd-modal"]')) {
             var pwdValueEl = qs('[data-role="mysql-pwd-value-modal"]');
             if (pwdValueEl) {
                 var text = pwdValueEl.textContent;
@@ -2022,7 +2029,7 @@
         }
 
         // MySQL password: hide (modal) — 清空 DOM 中密码文本，防止残留
-        if (e.target.closest('[data-role="btn-hide-pwd-modal"]')) {
+        if (closestTarget(e, '[data-role="btn-hide-pwd-modal"]')) {
             mysqlPasswordHidden = true;
             var modal = qs('[data-role="mysql-password-modal"]');
             var pwdVal = qs('[data-role="mysql-pwd-value-modal"]');
@@ -2032,7 +2039,7 @@
         }
 
         // Log links
-        var logLink = e.target.closest('[data-goto-log]');
+        var logLink = closestTarget(e, '[data-goto-log]');
         if (logLink) {
             e.preventDefault();
             showLogView();
@@ -2041,27 +2048,27 @@
         }
 
         // Log tab switching
-        var logTab = e.target.closest('.log-tab');
+        var logTab = closestTarget(e, '.log-tab');
         if (logTab) {
             fetchLog(logTab.getAttribute('data-log-tab'));
             return;
         }
 
         // Refresh log
-        if (e.target.closest('[data-role="btn-refresh-log"]')) {
+        if (closestTarget(e, '[data-role="btn-refresh-log"]')) {
             fetchLog(currentLogTab);
             return;
         }
 
         // Retry
-        if (e.target.closest('[data-role="btn-retry"]')) {
+        if (closestTarget(e, '[data-role="btn-retry"]')) {
             showLoadingView();
             refreshStatus();
             return;
         }
 
         // 环境信息模块按钮：编辑配置 / 打开目录
-        var envActionBtn = e.target.closest('[data-env-action]');
+        var envActionBtn = closestTarget(e, '[data-env-action]');
         if (envActionBtn) {
             var envActionType = envActionBtn.getAttribute('data-env-action');
             if (envActionType === 'edit_config') {
@@ -2109,13 +2116,13 @@
         }
 
         // Error view log links
-        if (e.target.closest('[data-role="link-runtime-log"]')) {
+        if (closestTarget(e, '[data-role="link-runtime-log"]')) {
             e.preventDefault();
             showLogView();
             fetchLog('runtime');
             return;
         }
-        if (e.target.closest('[data-role="link-action-log"]')) {
+        if (closestTarget(e, '[data-role="link-action-log"]')) {
             e.preventDefault();
             showLogView();
             fetchLog('action');

@@ -847,7 +847,8 @@
         var btns = document.querySelectorAll('.lang-switch-btn');
         for (var i = 0; i < btns.length; i++) {
             var lang = btns[i].getAttribute('data-lang');
-            btns[i].classList.toggle('active', lang === _currentLang);
+            // IE11 兼容：使用 WNMPCompat.toggleClass 替代 classList.toggle 第二参数
+            WNMPCompat.toggleClass(btns[i], 'active', lang === _currentLang);
         }
     }
 

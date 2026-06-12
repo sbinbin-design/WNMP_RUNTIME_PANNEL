@@ -401,6 +401,9 @@ class PanelHandler(BaseHTTPRequestHandler):
         try:
             self.send_response(200)
             self.send_header("Content-Type", content_type)
+            # IE11 兼容：text/html 响应增加 X-UA-Compatible 头，降低兼容视图降级风险
+            if content_type and content_type.lower().startswith("text/html"):
+                self.send_header("X-UA-Compatible", "IE=edge")
             self.send_header("Content-Length", str(len(body)))
             if no_cache:
                 self.send_header("Cache-Control", "no-store")
@@ -459,6 +462,8 @@ class PanelHandler(BaseHTTPRequestHandler):
             self._api_config_file_get()
         elif path == "/api/environment-info":
             self._api_environment_info()
+        elif path == "/assets/compat.js":
+            self._serve_asset("compat.js", "application/javascript")
         elif path == "/assets/app.js":
             self._serve_asset("app.js", "application/javascript")
         elif path == "/assets/i18n.js":
