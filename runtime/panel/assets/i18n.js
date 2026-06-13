@@ -188,8 +188,8 @@
         'about.quick_start_1': '将 Nginx / PHP / MySQL 二进制文件放入对应 bin 目录',
         'about.quick_start_2': '首次打开面板后点击"初始化环境"生成默认配置',
         'about.quick_start_3': '初始化完成后可在首页启动、停止、重启各组件',
-        'about.quick_start_4': '配置文件统一存放在 config 目录，建议通过面板编辑',
-        'about.quick_start_5': 'Nginx 独立站点配置请放入 config\\nginx\\vhosts\\ 目录，文件内容通常是完整 server { ... } 配置块',
+        'about.quick_start_4': 'Panel 配置位于 config/runtime.ini；Nginx/PHP/MySQL 配置位于各自组件目录，建议通过面板编辑',
+        'about.quick_start_5': 'Nginx 独立站点配置请放入 bin\\nginx\\conf\\vhosts\\ 目录，文件内容通常是完整 server { ... } 配置块',
         'about.quick_start_6': '如启用开机自启动，面板会创建 Windows 计划任务',
         'about.key_paths': '关键路径',
         'about.root_dir': '项目根目录',
@@ -340,7 +340,7 @@
 
         // 环境信息模块（第二阶段前端展示用）
         'env_info.module_title': '环境信息',
-        'env_info.subtitle': '当前面板使用的集中配置文件和自定义配置目录。通过面板启动服务时，会优先读取以下配置；直接修改 bin 目录下的默认配置文件可能不会生效。',
+        'env_info.subtitle': 'Panel 配置位于 config/runtime.ini；Nginx/PHP/MySQL 配置位于各自组件目录，可通过面板编辑。',
         'env_info.main_config': '主配置文件',
         'env_info.default_site_config': '默认站点配置',
         'env_info.vhosts_dir': '新增站点目录',
@@ -542,8 +542,8 @@
         'about.quick_start_1': 'Place Nginx / PHP / MySQL binaries into the corresponding bin directories',
         'about.quick_start_2': 'Click "Initialize Environment" on first launch to generate default configs',
         'about.quick_start_3': 'After initialization, start, stop, or restart components from the Overview page',
-        'about.quick_start_4': 'Config files are stored in the config directory; editing via the panel is recommended',
-        'about.quick_start_5': 'For Nginx standalone site configs, place files in config\\nginx\\vhosts\\ with a complete server { ... } block',
+        'about.quick_start_4': 'Panel config is in config/runtime.ini; Nginx/PHP/MySQL configs are in their own component directories; editing via the panel is recommended',
+        'about.quick_start_5': 'For Nginx standalone site configs, place files in bin\\nginx\\conf\\vhosts\\ with a complete server { ... } block',
         'about.quick_start_6': 'Enabling auto-start will create a Windows Scheduled Task',
         'about.key_paths': 'Key Paths',
         'about.root_dir': 'Project Root',
@@ -694,7 +694,7 @@
 
         // Environment Info Module (Phase 2 frontend use)
         'env_info.module_title': 'Environment Info',
-        'env_info.subtitle': 'Centralized config files and custom config directories used by this panel. Services started via the panel read these configs first; editing defaults in the bin directory directly may not take effect.',
+        'env_info.subtitle': 'Panel config is in config/runtime.ini; Nginx/PHP/MySQL configs are in their own component directories, editable via the panel.',
         'env_info.main_config': 'Main Config',
         'env_info.default_site_config': 'Default Site Config',
         'env_info.vhosts_dir': 'Virtual Hosts',

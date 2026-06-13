@@ -1,5 +1,5 @@
 # Nginx Virtual Host Example (HTTPS)
-# Copy this file to config/nginx/vhosts/xxx.local.conf (remove .disabled) to enable.
+# Copy this file to bin/nginx/conf/vhosts/xxx.local.conf (remove .disabled) to enable.
 # After copying, modify server_name and root to match your project.
 # Then restart Nginx in WNMPPanel.exe to apply.
 #
@@ -40,7 +40,7 @@ server {
         fastcgi_pass   127.0.0.1:9000;
         fastcgi_index  index.php;
         fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
-        include        <WNMP_ROOT>/config/nginx/fastcgi_params;
+        include        <WNMP_ROOT>/bin/nginx/conf/fastcgi_params;
     }
 
     # Deny hidden files

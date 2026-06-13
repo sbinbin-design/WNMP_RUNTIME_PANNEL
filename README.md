@@ -11,8 +11,8 @@ WNMP Runtime Panel 用于在本机管理 WNMP（Windows + Nginx + PHP-CGI + MySQ
 - **本地 Web 控制面板**：双击 `WNMPPanel.exe` 自动启动 Panel Server 并打开浏览器，无需手动配置
 - **独立组件管理**：Nginx、PHP-CGI、MySQL 分别支持启停与实时状态检测
 - **一键初始化**：首次使用时点击"初始化环境"，自动生成默认配置、默认站点、本地开发证书和 MySQL 数据目录
-- **集中配置管理**：所有配置文件统一存放在 `config\` 目录，支持面板内编辑
-- **Nginx 站点扩展**：`config\nginx\vhosts\` 目录用于新增独立站点配置；`config\nginx\custom\` 提供 http 级和 server 级扩展目录
+- **组件配置归位**：Panel 配置保留在 `config\runtime.ini`，Nginx/PHP/MySQL 配置位于各自组件目录，支持面板内编辑
+- **Nginx 站点扩展**：`bin\nginx\conf\vhosts\` 目录用于新增独立站点配置；`bin\nginx\conf\custom\` 提供 http 级和 server 级扩展目录
 - **运行日志查看**：面板内可查看 Panel 运行日志和动作输出日志
 - **开机自启动**：基于 Windows 计划任务实现，任务名来自 `runtime.ini` 的 `SERVICE_NAME`
 - **面板版本统一管理**：版本号由项目根目录 `VERSION` 文件统一维护
@@ -69,7 +69,7 @@ WNMP Runtime Panel 用于在本机管理 WNMP（Windows + Nginx + PHP-CGI + MySQ
 
 ### 6. 管理配置
 
-所有配置文件统一存放在 `config\` 目录，可在面板"设置"页面中编辑。修改配置后通常需要重启或重载对应组件才能生效。
+Panel 配置保留在 `config\runtime.ini`，Nginx/PHP/MySQL 配置位于各自组件目录，可在面板"设置"页面中编辑。修改配置后通常需要重启或重载对应组件才能生效。
 
 ## 目录结构
 
@@ -87,22 +87,32 @@ WNMP_RUNTIME/
 │   ├── wnmpctl.py             # CLI 控制器（开发排错用）
 │   ├── panel/                 # Panel 模块（前端资产、路径管理、环境信息等）
 │   └── *.py                   # 各组件控制模块（Nginx/PHP/MySQL/日志/状态等）
-├── config/                    # 集中配置目录
+├── config/                    # Panel 配置目录
 │   ├── runtime.ini            # 面板运行配置
-│   ├── nginx/                 # Nginx 配置及扩展目录
-│   ├── php/                   # PHP 配置
-│   └── mysql/                 # MySQL 配置
-├── bin/                       # 二进制文件目录
+│   ├── nginx/                 # Nginx 旧配置（迁移来源，保留不删）
+│   ├── php/                   # PHP 旧配置（迁移来源，保留不删）
+│   └── mysql/                 # MySQL 旧配置（迁移来源，保留不删）
+├── bin/                       # 二进制文件与组件配置目录
 │   ├── python/                # Python 运行时（必需）
 │   │   └── python.exe
 │   ├── nginx/                  # Nginx Web 服务器
-│   │   └── nginx.exe
+│   │   ├── nginx.exe
+│   │   └── conf/               # Nginx 活跃配置目录
+│   │       ├── nginx.conf      # 主配置
+│   │       ├── site.conf       # 默认站点配置
+│   │       ├── vhosts/         # 新增站点目录
+│   │       └── custom/         # 扩展配置目录
+│   │           ├── http/       # http 级扩展
+│   │           └── server/     # server 级扩展
 │   ├── php/                    # PHP 运行时
 │   │   ├── php.exe             # PHP CLI
-│   │   └── php-cgi.exe         # PHP-CGI FastCGI 进程
+│   │   ├── php-cgi.exe         # PHP-CGI FastCGI 进程
+│   │   ├── php.ini             # PHP 活跃配置
+│   │   └── php-cgi.ini         # PHP-CGI 进程配置
 │   ├── mysql/                  # MySQL 数据库
-│   │   └── bin/
-│   │       └── mysqld.exe      # MySQL 服务器
+│   │   ├── bin/
+│   │   │   └── mysqld.exe      # MySQL 服务器
+│   │   └── my.ini              # MySQL 活跃配置
 │   └── openssl/                # OpenSSL 工具（可选）
 │       └── openssl.exe
 ├── www/                       # 默认站点目录（初始化时生成）
@@ -133,11 +143,11 @@ WNMP_RUNTIME/
 
 | 配置项 | 默认值 | 初始化后以哪个文件为准 |
 |---|---|---|
-| `HTTP_PORT` | 80 | `config\nginx.conf` 和 `config\nginx\site.conf` 的 `listen` 指令 |
+| `HTTP_PORT` | 80 | `bin\nginx\conf\site.conf` 或 `bin\nginx\conf\nginx.conf` 的 `listen` 指令 |
 | `HTTPS_PORT` | 443 | Nginx 配置中的 `ssl listen` |
 | `ENABLE_HTTPS` | 1 | Nginx 配置中是否存在 `ssl listen` |
-| `PHP_CGI_PORT` | 9000 | `config\php\php-cgi.ini` |
-| `MYSQL_PORT` | 3306 | `config\mysql\my.ini` |
+| `PHP_CGI_PORT` | 9000 | `bin\php\php-cgi.ini` |
+| `MYSQL_PORT` | 3306 | `bin\mysql\my.ini` |
 
 > 初始化完成后，修改 `runtime.ini` 中的端口值不会覆盖已生成的组件配置文件。请直接编辑对应的配置文件修改端口。
 
@@ -145,26 +155,26 @@ WNMP_RUNTIME/
 
 | 路径 | 说明 |
 |---|---|
-| `config\nginx.conf` | Nginx 主配置文件 |
-| `config\nginx\site.conf` | 默认站点配置 |
-| `config\nginx\vhosts\` | 新增独立站点配置目录，文件内容通常是完整 `server { ... }` 配置块 |
-| `config\nginx\custom\http\` | http 级扩展目录，适合 `upstream`、`map`、`gzip`、`log_format` 等 http 级配置片段 |
-| `config\nginx\custom\server\` | 默认站点 server 级扩展目录，适合 `location`、`rewrite`、`add_header` 等 server 级配置片段 |
+| `bin\nginx\conf\nginx.conf` | Nginx 主配置文件 |
+| `bin\nginx\conf\site.conf` | 默认站点配置 |
+| `bin\nginx\conf\vhosts\` | 新增独立站点配置目录，文件内容通常是完整 `server { ... }` 配置块 |
+| `bin\nginx\conf\custom\http\` | http 级扩展目录，适合 `upstream`、`map`、`gzip`、`log_format` 等 http 级配置片段 |
+| `bin\nginx\conf\custom\server\` | 默认站点 server 级扩展目录，适合 `location`、`rewrite`、`add_header` 等 server 级配置片段 |
 
-> `config\nginx\custom\server\` 用于对默认站点追加配置片段，**不是**新增独立站点的位置。新增独立站点请使用 `config\nginx\vhosts\`。
+> `bin\nginx\conf\custom\server\` 用于对默认站点追加配置片段，**不是**新增独立站点的位置。新增独立站点请使用 `bin\nginx\conf\vhosts\`。
 
 ### PHP 配置
 
 | 路径 | 说明 |
 |---|---|
-| `config\php\php.ini` | PHP 运行配置 |
-| `config\php\php-cgi.ini` | PHP-CGI 进程配置（监听地址、端口等） |
+| `bin\php\php.ini` | PHP 运行配置 |
+| `bin\php\php-cgi.ini` | PHP-CGI 进程配置（监听地址、端口等） |
 
 ### MySQL 配置
 
 | 路径 | 说明 |
 |---|---|
-| `config\mysql\my.ini` | MySQL 主配置文件 |
+| `bin\mysql\my.ini` | MySQL 主配置文件 |
 
 ## 常用操作
 
@@ -253,11 +263,11 @@ python scripts\clean_runtime_artifacts.py              # 实际清理
 
 ### 修改 `runtime.ini` 中的端口后为什么不生效？
 
-`runtime.ini` 中的端口仅作为首次初始化的默认值。初始化完成后，请直接编辑对应的组件配置文件（`config\nginx\site.conf`、`config\php\php-cgi.ini`、`config\mysql\my.ini`）修改端口。
+`runtime.ini` 中的端口仅作为首次初始化的默认值。初始化完成后，请直接编辑对应的组件配置文件（`bin\nginx\conf\site.conf`、`bin\php\php-cgi.ini`、`bin\mysql\my.ini`）修改端口。
 
 ### Nginx 新站点配置应该放哪里？
 
-新增独立站点配置请放入 `config\nginx\vhosts\` 目录，文件内容应为完整的 `server { ... }` 配置块。如需对默认站点追加 location、rewrite 等配置片段，请放入 `config\nginx\custom\server\`。
+新增独立站点配置请放入 `bin\nginx\conf\vhosts\` 目录，文件内容应为完整的 `server { ... }` 配置块。如需对默认站点追加 location、rewrite 等配置片段，请放入 `bin\nginx\conf\custom\server\`。
 
 ### 为什么修改配置后需要重启或重载？
 

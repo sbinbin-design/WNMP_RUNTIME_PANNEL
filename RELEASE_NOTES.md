@@ -32,3 +32,19 @@
 - 不改变随机启动逻辑
 - 不改变日志查看逻辑
 - 不需要重新初始化环境
+
+---
+
+## 下一开发阶段调整：组件配置路径归位（P2-A）
+
+> 注意：以下为开发阶段调整说明，不影响 v0.1.1-dev 已发布版本的历史事实。
+
+- Nginx 活跃配置正式切换到 `bin/nginx/conf/` 目录（nginx.conf、site.conf、vhosts/、custom/http/、custom/server/）
+- PHP 活跃配置正式切换到 `bin/php/` 目录（php.ini、php-cgi.ini、php.user.ini）
+- MySQL 活跃配置正式切换到 `bin/mysql/my.ini`（my.user.ini 同理）
+- Panel 自身配置保留在 `config/runtime.ini`，不移动
+- 旧 `config/nginx/`、`config/php/`、`config/mysql/` 下文件保留不删，仅作为迁移来源
+- 模板文件迁移到 `runtime/templates/` 对应组件目录，不再作为 config 下的运行依赖
+- 新增非覆盖迁移逻辑：旧配置存在且新目标不存在时复制；新目标已存在但未被 Panel 管理时先备份再覆盖；已被 Panel 管理时不覆盖
+- 原始配置备份保存在 `config/backups/original/<component>/`
+- MySQL 数据目录保持 `data/mysql/`，日志目录保持 `logs/`，均不迁入组件目录

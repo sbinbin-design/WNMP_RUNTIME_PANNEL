@@ -13,6 +13,11 @@ WNMP Config Module - reads config/runtime.ini
 import os
 import re
 import sys
+from runtime.wnmp_component_paths import (
+    get_nginx_conf_path, get_nginx_site_conf_path, get_nginx_vhosts_dir,
+    get_nginx_custom_http_dir, get_nginx_custom_server_dir,
+    get_mysql_ini_path, get_php_cgi_ini_path,
+)
 
 
 DEFAULTS = {
@@ -95,7 +100,7 @@ def get_int(cfg, key, default=0):
 def parse_nginx_listens(root_dir):
     """解析 Nginx 配置文件中所有 listen 指令，返回结构化列表。
 
-    解析 config/nginx/site.conf 和 config/nginx.conf。
+    解析 bin/nginx/conf/site.conf 和 bin/nginx/conf/nginx.conf。
     支持格式：listen 80; listen 80 default_server; listen 127.0.0.1:8080;
     listen 0.0.0.0:80; listen [::]:443 ssl; listen 443 ssl http2;
     listen 443 default_server ssl http2;
@@ -103,12 +108,13 @@ def parse_nginx_listens(root_dir):
     返回 [{"port":int, "ssl":bool, "raw":str}, ...]
     """
     # 配置文件列表：site.conf、nginx.conf、vhosts/*.conf、custom/http/*.conf、custom/server/*.conf
+    # 路径收敛：通过统一路径模块获取配置文件路径
     config_files = [
-        os.path.join(root_dir, "config", "nginx", "site.conf"),
-        os.path.join(root_dir, "config", "nginx.conf"),
+        get_nginx_site_conf_path(root_dir),
+        get_nginx_conf_path(root_dir),
     ]
     # 纳入 vhosts 目录下的 .conf 文件（排除 .disabled 和非 .conf 文件）
-    vhosts_dir = os.path.join(root_dir, "config", "nginx", "vhosts")
+    vhosts_dir = get_nginx_vhosts_dir(root_dir)
     if os.path.isdir(vhosts_dir):
         try:
             for fname in sorted(os.listdir(vhosts_dir)):
@@ -117,8 +123,9 @@ def parse_nginx_listens(root_dir):
         except Exception:
             pass
     # 纳入 custom/http 和 custom/server 目录下的 .conf 文件，与 compute_component_config_hash 范围一致
-    for custom_sub in ("custom/http", "custom/server"):
-        custom_dir = os.path.join(root_dir, "config", "nginx", custom_sub.replace("/", os.sep))
+    # 路径收敛：通过统一路径模块获取 custom 目录路径
+    for custom_dir_func in (get_nginx_custom_http_dir, get_nginx_custom_server_dir):
+        custom_dir = custom_dir_func(root_dir)
         if os.path.isdir(custom_dir):
             try:
                 for fname in sorted(os.listdir(custom_dir)):
@@ -186,12 +193,13 @@ def _has_nginx_config_files(root_dir):
     - exists: 至少一个配置文件存在
     - has_listen: 至少解析到一个 listen 指令
     """
+    # 路径收敛：通过统一路径模块获取配置文件路径
     config_files = [
-        os.path.join(root_dir, "config", "nginx", "site.conf"),
-        os.path.join(root_dir, "config", "nginx.conf"),
+        get_nginx_site_conf_path(root_dir),
+        get_nginx_conf_path(root_dir),
     ]
     # 也检查 vhosts 目录
-    vhosts_dir = os.path.join(root_dir, "config", "nginx", "vhosts")
+    vhosts_dir = get_nginx_vhosts_dir(root_dir)
     if os.path.isdir(vhosts_dir):
         try:
             for fname in sorted(os.listdir(vhosts_dir)):
@@ -200,8 +208,9 @@ def _has_nginx_config_files(root_dir):
         except Exception:
             pass
     # 也检查 custom/http 和 custom/server 目录，与 parse_nginx_listens 范围一致
-    for custom_sub in ("custom/http", "custom/server"):
-        custom_dir = os.path.join(root_dir, "config", "nginx", custom_sub.replace("/", os.sep))
+    # 路径收敛：通过统一路径模块获取 custom 目录路径
+    for custom_dir_func in (get_nginx_custom_http_dir, get_nginx_custom_server_dir):
+        custom_dir = custom_dir_func(root_dir)
         if os.path.isdir(custom_dir):
             try:
                 for fname in sorted(os.listdir(custom_dir)):
@@ -247,11 +256,12 @@ def parse_nginx_https_port(root_dir):
 
 
 def parse_mysql_port(root_dir):
-    """从 config/mysql/my.ini 解析 [mysqld] port。
+    """从 bin/mysql/my.ini 解析 [mysqld] port。
 
     返回 int 端口号，解析失败返回 None。
     """
-    my_ini_path = os.path.join(root_dir, "config", "mysql", "my.ini")
+    # 路径收敛：通过统一路径模块获取 my.ini 路径
+    my_ini_path = get_mysql_ini_path(root_dir)
     if not os.path.isfile(my_ini_path):
         return None
     try:
@@ -279,12 +289,13 @@ def parse_mysql_port(root_dir):
 
 
 def parse_php_cgi_config(root_dir):
-    """从 config/php/php-cgi.ini 解析 PHP-CGI 运行参数。
+    """从 bin/php/php-cgi.ini 解析 PHP-CGI 运行参数。
 
     返回 dict: {"host": str, "port": int, "children": int}
     解析失败返回 None。
     """
-    php_cgi_ini = os.path.join(root_dir, "config", "php", "php-cgi.ini")
+    # 路径收敛：通过统一路径模块获取 php-cgi.ini 路径
+    php_cgi_ini = get_php_cgi_ini_path(root_dir)
     if not os.path.isfile(php_cgi_ini):
         return None
     try:

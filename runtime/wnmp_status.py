@@ -2,6 +2,12 @@
 WNMP Status Module - shows configuration summary, binary existence, and service status
 """
 import os
+from runtime.wnmp_component_paths import (
+    get_nginx_conf_path, get_nginx_site_conf_path,
+    get_php_ini_path, get_php_cgi_ini_path, get_mysql_ini_path,
+    get_nginx_vhosts_dir, get_nginx_custom_http_dir, get_nginx_custom_server_dir,
+    get_php_user_ini_path, get_mysql_user_ini_path,
+)
 
 
 def check_binary(root_dir, rel_path):
@@ -43,11 +49,12 @@ def show_status(root_dir, cfg, logger=None):
 
     print("Config Files:")
     print("  runtime.ini:       " + os.path.join(config_dir, "runtime.ini"))
-    print("  nginx.conf:        " + os.path.join(config_dir, "nginx.conf"))
-    print("  site.conf:         " + os.path.join(config_dir, "nginx", "site.conf"))
-    print("  php.ini:           " + os.path.join(config_dir, "php", "php.ini"))
-    print("  php-cgi.ini:       " + os.path.join(config_dir, "php", "php-cgi.ini"))
-    print("  my.ini:            " + os.path.join(config_dir, "mysql", "my.ini"))
+    # P2：配置文件路径展示切换到新组件配置路径
+    print("  nginx.conf:        " + get_nginx_conf_path(root_dir))
+    print("  site.conf:         " + get_nginx_site_conf_path(root_dir))
+    print("  php.ini:           " + get_php_ini_path(root_dir))
+    print("  php-cgi.ini:       " + get_php_cgi_ini_path(root_dir))
+    print("  my.ini:            " + get_mysql_ini_path(root_dir))
     print()
 
     print("Log Files:")
@@ -305,34 +312,39 @@ def show_status(root_dir, cfg, logger=None):
         # 不再提示 "NOT FOUND"，因为默认不再生成此文件
 
         # 实际配置文件是否存在
+        # P2：路径收敛，通过统一路径模块获取配置文件路径
         print()
         print("  Actual Config Files (user-editable):")
         actual_configs = [
-            ("config/nginx.conf", os.path.join(root_dir, "config", "nginx.conf")),
-            ("config/nginx/site.conf", os.path.join(root_dir, "config", "nginx", "site.conf")),
-            ("config/php/php.ini", os.path.join(root_dir, "config", "php", "php.ini")),
-            ("config/mysql/my.ini", os.path.join(root_dir, "config", "mysql", "my.ini")),
+            ("bin/nginx/conf/nginx.conf", get_nginx_conf_path(root_dir)),
+            ("bin/nginx/conf/site.conf", get_nginx_site_conf_path(root_dir)),
+            ("bin/php/php.ini", get_php_ini_path(root_dir)),
+            ("bin/mysql/my.ini", get_mysql_ini_path(root_dir)),
         ]
         for name, path in actual_configs:
             print("    {}: {}".format(name, "EXISTS" if os.path.isfile(path) else "NOT FOUND"))
 
         # 模板文件是否存在
+        # P2：模板迁移到 runtime/templates/<component>/
+        from runtime.wnmp_component_paths import get_template_dir
         print()
         print("  Template Files (for reset-config):")
         template_files = [
-            ("config/nginx/nginx.conf.template", os.path.join(root_dir, "config", "nginx", "nginx.conf.template")),
-            ("config/nginx/site.conf.template", os.path.join(root_dir, "config", "nginx", "site.conf.template")),
-            ("config/php/php.ini.template", os.path.join(root_dir, "config", "php", "php.ini.template")),
-            ("config/mysql/my.ini.template", os.path.join(root_dir, "config", "mysql", "my.ini.template")),
+            ("runtime/templates/nginx/nginx.conf.template", os.path.join(get_template_dir(root_dir, "nginx"), "nginx.conf.template")),
+            ("runtime/templates/nginx/site.conf.template", os.path.join(get_template_dir(root_dir, "nginx"), "site.conf.template")),
+            ("runtime/templates/php/php.ini.template", os.path.join(get_template_dir(root_dir, "php"), "php.ini.template")),
+            ("runtime/templates/mysql/my.ini.template", os.path.join(get_template_dir(root_dir, "mysql"), "my.ini.template")),
         ]
         for name, path in template_files:
             print("    {}: {}".format(name, "EXISTS" if os.path.isfile(path) else "NOT FOUND"))
 
         # 用户自定义配置状态
-        php_user_ini = os.path.join(root_dir, "config", "php", "php.user.ini")
-        my_user_ini = os.path.join(root_dir, "config", "mysql", "my.user.ini")
-        nginx_custom_http = os.path.join(root_dir, "config", "nginx", "custom", "http")
-        nginx_custom_server = os.path.join(root_dir, "config", "nginx", "custom", "server")
+        # 路径收敛：通过统一路径模块获取 php.user.ini 和 my.user.ini 路径
+        php_user_ini = get_php_user_ini_path(root_dir)
+        my_user_ini = get_mysql_user_ini_path(root_dir)
+        # 路径收敛：通过统一路径模块获取 custom 目录路径
+        nginx_custom_http = get_nginx_custom_http_dir(root_dir)
+        nginx_custom_server = get_nginx_custom_server_dir(root_dir)
 
         php_user_exists = os.path.isfile(php_user_ini)
         my_user_exists = os.path.isfile(my_user_ini)
@@ -361,7 +373,8 @@ def show_status(root_dir, cfg, logger=None):
     print()
     print("Nginx Virtual Hosts:")
     try:
-        vhosts_dir = os.path.join(root_dir, "config", "nginx", "vhosts")
+        # 路径收敛：通过统一路径模块获取 vhosts 目录路径
+        vhosts_dir = get_nginx_vhosts_dir(root_dir)
         vhosts_exists = os.path.isdir(vhosts_dir)
         print("  vhosts/ dir:       {}".format("EXISTS" if vhosts_exists else "NOT FOUND"))
 
@@ -386,8 +399,9 @@ def show_status(root_dir, cfg, logger=None):
             print("  nginx -t:          N/A")
 
         # custom/http and custom/server 存在性
-        custom_http_dir = os.path.join(root_dir, "config", "nginx", "custom", "http")
-        custom_server_dir = os.path.join(root_dir, "config", "nginx", "custom", "server")
+        # 路径收敛：通过统一路径模块获取 custom 目录路径
+        custom_http_dir = get_nginx_custom_http_dir(root_dir)
+        custom_server_dir = get_nginx_custom_server_dir(root_dir)
         print("  custom/http/:      {}".format("EXISTS" if os.path.isdir(custom_http_dir) else "NOT FOUND"))
         print("  custom/server/:    {}".format("EXISTS" if os.path.isdir(custom_server_dir) else "NOT FOUND"))
     except Exception as e:

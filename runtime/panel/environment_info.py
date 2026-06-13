@@ -12,51 +12,68 @@ import subprocess
 import sys
 
 from runtime.panel.paths import get_root_dir
+from runtime.wnmp_component_paths import (
+    get_nginx_conf_path, get_nginx_site_conf_path,
+    get_nginx_vhosts_dir, get_nginx_custom_http_dir, get_nginx_custom_server_dir,
+    get_php_ini_path, get_php_cgi_ini_path, get_mysql_ini_path,
+)
 
 
-# ---- 配置路径定义（相对于 root_dir）----
+# ---- 配置路径定义 ----
+# 路径收敛：通过统一路径模块获取路径，不再硬编码相对路径
+# 以下常量保留相对路径字符串，仅用于展示文案（label/path 字段）和打开目录白名单
 
-# 编辑白名单 key 映射（复用 config_editor.CONFIG_FILE_MAP 的 key）
-_NGINX_MAIN_CONFIG = "config/nginx.conf"
-_NGINX_SITE_CONFIG = "config/nginx/site.conf"
-_NGINX_VHOSTS_DIR = "config/nginx/vhosts"           # *.conf 完整独立站点目录
-_NGINX_CUSTOM_HTTP_DIR = "config/nginx/custom/http"  # HTTP 级扩展目录
-_NGINX_CUSTOM_SERVER_DIR = "config/nginx/custom/server"  # 默认站点 server 级扩展目录
-_PHP_CONFIG = "config/php/php.ini"
-_PHP_CGI_CONFIG = "config/php/php-cgi.ini"
-_MYSQL_CONFIG = "config/mysql/my.ini"
+# P2：展示用相对路径更新为新组件配置路径
+_NGINX_MAIN_CONFIG_REL = "bin/nginx/conf/nginx.conf"
+_NGINX_SITE_CONFIG_REL = "bin/nginx/conf/site.conf"
+_NGINX_VHOSTS_DIR_REL = "bin/nginx/conf/vhosts"
+_NGINX_CUSTOM_HTTP_DIR_REL = "bin/nginx/conf/custom/http"
+_NGINX_CUSTOM_SERVER_DIR_REL = "bin/nginx/conf/custom/server"
+_PHP_CONFIG_REL = "bin/php/php.ini"
+_PHP_CGI_CONFIG_REL = "bin/php/php-cgi.ini"
+_MYSQL_CONFIG_REL = "bin/mysql/my.ini"
 
 
-# ---- 打开目录白名单（key -> 相对路径）----
+# ---- 打开目录白名单 ----
+# 路径收敛：通过统一路径模块推导目录路径，不再硬编码相对路径
+# 本阶段路径函数仍返回旧路径，界面行为不变
 
-_OPEN_DIR_WHITELIST = {
-    "nginx_config_dir": "config/nginx",
-    "nginx_vhosts_dir": _NGINX_VHOSTS_DIR,
-    "nginx_custom_http_dir": _NGINX_CUSTOM_HTTP_DIR,
-    "nginx_custom_server_dir": _NGINX_CUSTOM_SERVER_DIR,
-    "php_config_dir": "config/php",
-    "mysql_config_dir": "config/mysql",
-}
+def _build_open_dir_whitelist(root_dir):
+    """构建打开目录白名单（key -> 绝对路径）。
+
+    路径收敛：目录路径从统一路径模块推导，不再硬编码 config/nginx 等。
+    """
+    return {
+        "nginx_config_dir": os.path.dirname(get_nginx_conf_path(root_dir)),
+        "nginx_vhosts_dir": get_nginx_vhosts_dir(root_dir),
+        "nginx_custom_http_dir": get_nginx_custom_http_dir(root_dir),
+        "nginx_custom_server_dir": get_nginx_custom_server_dir(root_dir),
+        "php_config_dir": os.path.dirname(get_php_ini_path(root_dir)),
+        "mysql_config_dir": os.path.dirname(get_mysql_ini_path(root_dir)),
+    }
 
 
 # ---- 环境信息定义 ------------------------------------------------------------
 
-def _build_paths(root_dir, rel):
-    """根据相对路径构建 {path, abs_path}。"""
+def _build_paths_from_abs(rel, abs_path):
+    """根据相对路径和绝对路径构建 {path, abs_path}。
+
+    路径收敛：abs_path 由统一路径模块提供，rel 仅用于展示。
+    """
     return {
         "path": rel,
-        "abs_path": os.path.normpath(os.path.join(root_dir, rel)),
+        "abs_path": os.path.normpath(abs_path),
     }
 
 
-def _file_exists(root_dir, rel):
-    """检查文件是否存在。"""
-    return os.path.isfile(os.path.join(root_dir, rel))
+def _file_exists_abs(abs_path):
+    """检查文件是否存在（绝对路径）。"""
+    return os.path.isfile(abs_path)
 
 
-def _dir_exists(root_dir, rel):
-    """检查目录是否存在。"""
-    return os.path.isdir(os.path.join(root_dir, rel))
+def _dir_exists_abs(abs_path):
+    """检查目录是否存在（绝对路径）。"""
+    return os.path.isdir(abs_path)
 
 
 def _get_component_config_status(root_dir, component):
@@ -90,9 +107,9 @@ def get_environment_info():
         {
             "label": "主配置文件",
             "label_en": "Main Config",
-            **_build_paths(root_dir, _NGINX_MAIN_CONFIG),
+            **_build_paths_from_abs(_NGINX_MAIN_CONFIG_REL, get_nginx_conf_path(root_dir)),
             "kind": "file",
-            "exists": _file_exists(root_dir, _NGINX_MAIN_CONFIG),
+            "exists": _file_exists_abs(get_nginx_conf_path(root_dir)),
             "description": "Nginx 全局主配置，包含 worker 进程数、日志路径、PID 路径、include 规则",
             "description_en": "Nginx main config: worker_processes, log paths, pid path, include directives",
             "edit_key": "nginx",
@@ -100,9 +117,9 @@ def get_environment_info():
         {
             "label": "默认站点配置",
             "label_en": "Default Site Config",
-            **_build_paths(root_dir, _NGINX_SITE_CONFIG),
+            **_build_paths_from_abs(_NGINX_SITE_CONFIG_REL, get_nginx_site_conf_path(root_dir)),
             "kind": "file",
-            "exists": _file_exists(root_dir, _NGINX_SITE_CONFIG),
+            "exists": _file_exists_abs(get_nginx_site_conf_path(root_dir)),
             "description": "默认站点的 server { ... } 配置，listen 端口、root 目录、PHP 转发规则",
             "description_en": "Default site server { ... } block: listen port, root dir, PHP proxy rules",
             "edit_key": "nginx-site",
@@ -110,9 +127,9 @@ def get_environment_info():
         {
             "label": "新增站点目录",
             "label_en": "Virtual Hosts (vhosts)",
-            **_build_paths(root_dir, _NGINX_VHOSTS_DIR),
+            **_build_paths_from_abs(_NGINX_VHOSTS_DIR_REL, get_nginx_vhosts_dir(root_dir)),
             "kind": "directory",
-            "exists": _dir_exists(root_dir, _NGINX_VHOSTS_DIR),
+            "exists": _dir_exists_abs(get_nginx_vhosts_dir(root_dir)),
             "description": "独立站点/vhost 目录，每个 .conf 应为完整 server { ... } 块",
             "description_en": "Independent vhost directory; each .conf should be a complete server { ... } block",
             "open_key": "nginx_vhosts_dir",
@@ -120,9 +137,9 @@ def get_environment_info():
         {
             "label": "HTTP 级扩展",
             "label_en": "HTTP-level Extensions",
-            **_build_paths(root_dir, _NGINX_CUSTOM_HTTP_DIR),
+            **_build_paths_from_abs(_NGINX_CUSTOM_HTTP_DIR_REL, get_nginx_custom_http_dir(root_dir)),
             "kind": "directory",
-            "exists": _dir_exists(root_dir, _NGINX_CUSTOM_HTTP_DIR),
+            "exists": _dir_exists_abs(get_nginx_custom_http_dir(root_dir)),
             "description": "http {} 级扩展目录，适用于 upstream、map、gzip、log_format 等全局指令",
             "description_en": "http {} level extensions: upstream, map, gzip, log_format, etc.",
             "open_key": "nginx_custom_http_dir",
@@ -130,9 +147,9 @@ def get_environment_info():
         {
             "label": "默认站点扩展",
             "label_en": "Server-level Extensions",
-            **_build_paths(root_dir, _NGINX_CUSTOM_SERVER_DIR),
+            **_build_paths_from_abs(_NGINX_CUSTOM_SERVER_DIR_REL, get_nginx_custom_server_dir(root_dir)),
             "kind": "directory",
-            "exists": _dir_exists(root_dir, _NGINX_CUSTOM_SERVER_DIR),
+            "exists": _dir_exists_abs(get_nginx_custom_server_dir(root_dir)),
             "description": "默认站点 server {} 级扩展目录，适用于 location、rewrite、add_header 等片段",
             "description_en": "Default site server {} level extensions: location, rewrite, add_header, etc.",
             "open_key": "nginx_custom_server_dir",
@@ -174,9 +191,9 @@ def get_environment_info():
         {
             "label": "PHP 配置文件",
             "label_en": "PHP Config",
-            **_build_paths(root_dir, _PHP_CONFIG),
+            **_build_paths_from_abs(_PHP_CONFIG_REL, get_php_ini_path(root_dir)),
             "kind": "file",
-            "exists": _file_exists(root_dir, _PHP_CONFIG),
+            "exists": _file_exists_abs(get_php_ini_path(root_dir)),
             "description": "PHP 主配置文件 php.ini，控制扩展加载、内存限制、错误报告等",
             "description_en": "PHP main config php.ini: extensions, memory_limit, error_reporting, etc.",
             "edit_key": "php",
@@ -184,9 +201,9 @@ def get_environment_info():
         {
             "label": "PHP-CGI 进程配置",
             "label_en": "PHP-CGI Process Config",
-            **_build_paths(root_dir, _PHP_CGI_CONFIG),
+            **_build_paths_from_abs(_PHP_CGI_CONFIG_REL, get_php_cgi_ini_path(root_dir)),
             "kind": "file",
-            "exists": _file_exists(root_dir, _PHP_CGI_CONFIG),
+            "exists": _file_exists_abs(get_php_cgi_ini_path(root_dir)),
             "description": "PHP-CGI 进程配置文件，包含监听地址端口、子进程数、环境变量",
             "description_en": "PHP-CGI process config: listen address/port, children count, environment variables",
             "edit_key": "php-cgi",
@@ -228,9 +245,9 @@ def get_environment_info():
         {
             "label": "MySQL 主配置文件",
             "label_en": "MySQL Main Config",
-            **_build_paths(root_dir, _MYSQL_CONFIG),
+            **_build_paths_from_abs(_MYSQL_CONFIG_REL, get_mysql_ini_path(root_dir)),
             "kind": "file",
-            "exists": _file_exists(root_dir, _MYSQL_CONFIG),
+            "exists": _file_exists_abs(get_mysql_ini_path(root_dir)),
             "description": "MySQL 配置文件 my.ini，基于模板生成，包含 [mysqld] 端口数据目录等",
             "description_en": "MySQL config my.ini: [mysqld] port, datadir, etc.",
             "edit_key": "mysql",
@@ -277,7 +294,7 @@ def open_directory(open_key):
 
     安全边界：
     - 只接受 open_key，不接受任意路径
-    - open_key 必须在白名单 _OPEN_DIR_WHITELIST 中
+    - open_key 必须在白名单中
     - 目录不存在时只允许创建白名单中的固定配置目录
     - 仅 Windows 下调用 explorer 打开目录
     - 不打开文件，只打开目录
@@ -285,12 +302,14 @@ def open_directory(open_key):
 
     返回 dict: {"success": bool, "message": str}
     """
-    if not open_key or open_key not in _OPEN_DIR_WHITELIST:
+    root_dir = get_root_dir()
+    # 路径收敛：通过统一路径模块构建白名单，不再硬编码相对路径
+    whitelist = _build_open_dir_whitelist(root_dir)
+
+    if not open_key or open_key not in whitelist:
         return {"success": False, "message": "无效的目录标识"}
 
-    root_dir = get_root_dir()
-    rel_path = _OPEN_DIR_WHITELIST[open_key]
-    abs_path = os.path.normpath(os.path.join(root_dir, rel_path))
+    abs_path = os.path.normpath(whitelist[open_key])
 
     # 安全检查：使用 os.path.commonpath 确保目标目录位于 root_dir 下
     # 避免 startswith 前缀误判（如 C:\WNMP 与 C:\WNMP2）

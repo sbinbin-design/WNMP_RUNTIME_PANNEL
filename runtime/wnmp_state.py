@@ -7,6 +7,12 @@ WNMP State Module - manages initialization state in runtime/state.json
 import os
 import json
 from datetime import datetime
+from runtime.wnmp_component_paths import (
+    get_nginx_conf_path, get_nginx_site_conf_path,
+    get_php_ini_path, get_php_cgi_ini_path, get_mysql_ini_path,
+    get_nginx_vhosts_dir, get_nginx_custom_http_dir, get_nginx_custom_server_dir,
+    get_legacy_config_paths,
+)
 
 
 def get_state_path(root_dir):
@@ -204,11 +210,12 @@ def try_backfill_state(root_dir, logger=None):
     if is_initialized(root_dir):
         return True
 
+    # 路径收敛：通过统一路径模块获取配置文件路径
     checks = [
-        os.path.join(root_dir, "config", "nginx.conf"),
-        os.path.join(root_dir, "config", "nginx", "site.conf"),
-        os.path.join(root_dir, "config", "php", "php.ini"),
-        os.path.join(root_dir, "config", "mysql", "my.ini"),
+        get_nginx_conf_path(root_dir),
+        get_nginx_site_conf_path(root_dir),
+        get_php_ini_path(root_dir),
+        get_mysql_ini_path(root_dir),
     ]
     all_exist = all(os.path.isfile(p) for p in checks)
 
@@ -279,19 +286,43 @@ def backfill_missing_fields(root_dir, logger=None):
 # ---- 组件配置应用状态（desired config vs applied config）--------------------
 # 每个组件独立保存，不使用全局 dirty 标志
 
-# 组件配置文件路径定义（相对于 root_dir）
+# 组件配置文件路径定义（展示用相对路径，P2 阶段更新为新路径）
+# 路径收敛：相对路径列表从统一路径模块获取，保持与当前活跃路径一致
 _COMPONENT_CONFIG_FILES = {
     "nginx": [
-        "config/nginx.conf",
-        "config/nginx/site.conf",
+        "bin/nginx/conf/nginx.conf",
+        "bin/nginx/conf/site.conf",
     ],
     "php": [
-        "config/php/php-cgi.ini",
+        "bin/php/php-cgi.ini",
     ],
     "mysql": [
-        "config/mysql/my.ini",
+        "bin/mysql/my.ini",
     ],
 }
+
+
+def _get_component_config_abs_paths(root_dir, component):
+    """获取组件配置文件的绝对路径列表。
+
+    路径收敛：通过统一路径模块获取绝对路径，而非直接拼接相对路径。
+    P2 阶段：display_rel 更新为新组件配置路径。
+    返回 [(rel_path, abs_path), ...] 列表。
+    """
+    if component == "nginx":
+        return [
+            ("bin/nginx/conf/nginx.conf", get_nginx_conf_path(root_dir)),
+            ("bin/nginx/conf/site.conf", get_nginx_site_conf_path(root_dir)),
+        ]
+    elif component == "php":
+        return [
+            ("bin/php/php-cgi.ini", get_php_cgi_ini_path(root_dir)),
+        ]
+    elif component == "mysql":
+        return [
+            ("bin/mysql/my.ini", get_mysql_ini_path(root_dir)),
+        ]
+    return []
 
 
 def _get_component_config_state_path(root_dir, component):
@@ -322,34 +353,42 @@ def _save_component_config_state(root_dir, component, state):
 def compute_component_config_hash(root_dir, component):
     """计算组件当前磁盘配置文件的哈希值。
 
-    Nginx 额外覆盖 config/nginx/vhosts/*.conf、config/nginx/custom/http/*.conf、
-    config/nginx/custom/server/*.conf。只纳入 .conf 文件，排除 .disabled 和非 .conf 文件。
+    路径收敛：通过统一路径模块获取配置文件路径。
+    使用 entries 列表同时保存展示用相对路径和真实绝对路径，
+    计算 hash 时始终读取真实绝对路径，后续 P2 切换路径时不会误读旧目录。
+    Nginx 额外覆盖 vhosts/*.conf、custom/http/*.conf、custom/server/*.conf。
+    只纳入 .conf 文件，排除 .disabled 和非 .conf 文件。
     返回 hex digest 字符串，任一文件不存在或读取失败时返回 None。
     """
     import hashlib
-    rel_paths = list(_COMPONENT_CONFIG_FILES.get(component, []))
+    # 路径收敛：通过统一路径模块获取配置文件路径
+    # entries: [(display_rel, abs_path), ...] 同时保存展示用相对路径和真实绝对路径
+    config_pairs = _get_component_config_abs_paths(root_dir, component)
+    entries = list(config_pairs)
     # Nginx 额外包含 vhosts、custom/http、custom/server 目录
     if component == "nginx":
         _extra_dirs = [
-            ("config/nginx/vhosts", "config/nginx/vhosts/"),
-            ("config/nginx/custom/http", "config/nginx/custom/http/"),
-            ("config/nginx/custom/server", "config/nginx/custom/server/"),
+            ("bin/nginx/conf/vhosts", get_nginx_vhosts_dir(root_dir)),
+            ("bin/nginx/conf/custom/http", get_nginx_custom_http_dir(root_dir)),
+            ("bin/nginx/conf/custom/server", get_nginx_custom_server_dir(root_dir)),
         ]
-        for dir_rel, prefix in _extra_dirs:
-            abs_dir = os.path.join(root_dir, dir_rel)
+        for dir_rel, abs_dir in _extra_dirs:
             if os.path.isdir(abs_dir):
                 for fname in sorted(os.listdir(abs_dir)):
                     # 只纳入 .conf 文件，排除 .disabled 和非 .conf 文件
                     if fname.endswith(".conf") and not fname.endswith(".disabled"):
-                        rel_paths.append(prefix + fname)
+                        entries.append((dir_rel + "/" + fname, os.path.join(abs_dir, fname)))
+
+    # 按 display_rel 排序，确保 hash 输出稳定性
+    entries.sort(key=lambda e: e[0])
 
     h = hashlib.sha256()
-    for rel in rel_paths:
-        full = os.path.join(root_dir, rel)
-        if not os.path.isfile(full):
+    for display_rel, abs_path in entries:
+        # 始终读取真实绝对路径，不依赖 os.path.join(root_dir, rel) 反推
+        if not os.path.isfile(abs_path):
             return None
         try:
-            with open(full, "rb") as f:
+            with open(abs_path, "rb") as f:
                 h.update(f.read())
         except Exception:
             return None

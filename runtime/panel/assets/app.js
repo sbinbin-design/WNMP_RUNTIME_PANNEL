@@ -760,17 +760,13 @@
                                 wwwDirEl.textContent = 'www' + sep;
                                 wwwDirEl.title = joinFull(rootDir, 'www');
                             }
-                            // Nginx 站点配置目录：显示 config\nginx\vhosts\，title 为完整绝对路径
+                            // Nginx 站点配置目录：优先使用后端返回的 vhosts 路径，避免 P2 切换时前端硬编码漏改
                             if (vhostsDirEl) {
-                                // vhosts 相对路径使用反斜杠
-                                var vhostsRel = 'config\\nginx\\vhosts';
-                                vhostsRel = vhostsRel.replace(/[/\\]/g, sep);
+                                // 优先使用后端返回值，fallback 到 P2 新路径
+                                var vhostsRel = (data.vhosts_rel || 'bin/nginx/conf/vhosts').replace(/[/\\]/g, sep);
                                 vhostsDirEl.textContent = vhostsRel + sep;
-                                // 完整绝对路径
-                                var vhostsFull = rootDir + sep + 'config' + sep + 'nginx' + sep + 'vhosts';
-                                if (sep === '/') {
-                                    vhostsFull = rootDir + '/config/nginx/vhosts';
-                                }
+                                // 完整绝对路径：优先使用后端返回值
+                                var vhostsFull = data.vhosts_abs || (rootDir + sep + 'bin' + sep + 'nginx' + sep + 'conf' + sep + 'vhosts');
                                 vhostsDirEl.title = vhostsFull;
                             }
                         }

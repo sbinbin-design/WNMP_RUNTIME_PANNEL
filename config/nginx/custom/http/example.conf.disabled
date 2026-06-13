@@ -1,5 +1,5 @@
 # Nginx HTTP-level Custom Configuration Example
-# Copy this file to config/nginx/custom/http/your-config.conf (without .disabled)
+# Copy this file to bin/nginx/conf/custom/http/your-config.conf (without .disabled)
 # These directives are included in the http {} block
 
 # Example: Set maximum request body size

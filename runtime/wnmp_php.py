@@ -19,6 +19,7 @@ from runtime.wnmp_process import (
     get_process_path, is_system_process, is_current_admin,
     get_process_image_path, get_process_name, get_pid_detail
 )
+from runtime.wnmp_component_paths import get_php_ini_path
 
 
 def start_php_cgi(root_dir, cfg, logger):
@@ -35,7 +36,8 @@ def start_php_cgi(root_dir, cfg, logger):
     from runtime.wnmp_process import check_listener_ownership, wait_for_port_listener
 
     php_cgi_exe = os.path.join(root_dir, "bin", "php", "php-cgi.exe")
-    php_ini = os.path.join(root_dir, "config", "php", "php.ini")
+    # 路径收敛：通过统一路径模块获取 php.ini 路径
+    php_ini = get_php_ini_path(root_dir)
     pid_dir = os.path.join(root_dir, "runtime", "pids")
 
     # 从 php-cgi.ini 解析 host/port

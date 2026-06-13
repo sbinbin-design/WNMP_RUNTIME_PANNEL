@@ -8,16 +8,27 @@ import os
 import time
 import shutil
 import logging
+from runtime.wnmp_component_paths import (
+    get_nginx_conf_path, get_nginx_site_conf_path,
+    get_php_ini_path, get_php_cgi_ini_path, get_mysql_ini_path,
+    get_runtime_ini_path,
+)
 
-# 配置名到文件路径的映射（相对于 root_dir）
-CONFIG_FILE_MAP = {
-    "nginx": "config/nginx.conf",
-    "nginx-site": "config/nginx/site.conf",
-    "php": "config/php/php.ini",
-    "php-cgi": "config/php/php-cgi.ini",
-    "mysql": "config/mysql/my.ini",
-    "runtime": "config/runtime.ini",  # 运行器配置，独立于 Nginx/PHP/MySQL 组件
-}
+
+def _build_config_file_map(root_dir):
+    """构建配置名到文件绝对路径的映射。
+
+    路径收敛：通过统一路径模块获取配置文件路径，而非硬编码相对路径。
+    """
+    return {
+        "nginx": get_nginx_conf_path(root_dir),
+        "nginx-site": get_nginx_site_conf_path(root_dir),
+        "php": get_php_ini_path(root_dir),
+        "php-cgi": get_php_cgi_ini_path(root_dir),
+        "mysql": get_mysql_ini_path(root_dir),
+        "runtime": get_runtime_ini_path(root_dir),  # 运行器配置，独立于 Nginx/PHP/MySQL 组件
+    }
+
 
 # 配置名到组件名的映射（用于标记 config_dirty）
 CONFIG_COMPONENT_MAP = {
@@ -30,7 +41,7 @@ CONFIG_COMPONENT_MAP = {
 }
 
 # 允许的配置名白名单
-VALID_CONFIG_NAMES = set(CONFIG_FILE_MAP.keys())
+VALID_CONFIG_NAMES = set(CONFIG_COMPONENT_MAP.keys()) | {"runtime"}
 
 
 def save_config_file(root_dir, name, content):
@@ -85,8 +96,9 @@ def _save_config_file_impl(root_dir, name, content, component):
     if name == "runtime":
         return _save_runtime_config(root_dir, content)
 
-    rel_path = CONFIG_FILE_MAP[name]
-    path = os.path.join(root_dir, rel_path)
+    # 路径收敛：通过统一路径模块获取配置文件绝对路径
+    config_file_map = _build_config_file_map(root_dir)
+    path = config_file_map[name]
     backup_path = None
 
     # POST 文件存在性检查：禁止通过编辑器创建新配置文件
@@ -276,8 +288,8 @@ def _save_runtime_config(root_dir, content):
     - 保存前备份，保存失败返回 JSON 错误
     - 不在日志中输出敏感信息
     """
-    rel_path = CONFIG_FILE_MAP["runtime"]
-    path = os.path.join(root_dir, rel_path)
+    # 路径收敛：通过统一路径模块获取 runtime.ini 绝对路径
+    path = get_runtime_ini_path(root_dir)
 
     # 文件存在性检查：不允许通过接口创建未知路径文件
     if not os.path.isfile(path):

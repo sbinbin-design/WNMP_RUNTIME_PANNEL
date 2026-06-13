@@ -13,8 +13,8 @@ All operations are performed through a local Web control panel. It does not rely
 - **Local Web Control Panel**: Double-click `WNMPPanel.exe` to automatically start the Panel Server and open the browser. No manual configuration is required.
 - **Independent Component Management**: Nginx, PHP-CGI, and MySQL can be started, stopped, restarted, and monitored independently.
 - **One-Click Initialization**: On first use, click "Initialize Environment" to automatically generate default configuration files, the default site, local development certificates, and the MySQL data directory.
-- **Centralized Configuration Management**: All configuration files are stored under the `config\` directory and can be edited in the panel.
-- **Nginx Site Extensions**: `config\nginx\vhosts\` is used for adding independent site configurations. `config\nginx\custom\` provides HTTP-level and server-level extension directories.
+- **Component Configuration Co-location**: Panel config remains in `config\runtime.ini`, while Nginx/PHP/MySQL configs are located in their respective component directories, editable in the panel.
+- **Nginx Site Extensions**: `bin\nginx\conf\vhosts\` is used for adding independent site configurations. `bin\nginx\conf\custom\` provides HTTP-level and server-level extension directories.
 - **Runtime Log Viewing**: Panel runtime logs and action output logs can be viewed directly in the panel.
 - **Startup on Boot**: Implemented through Windows Task Scheduler. The task name comes from `SERVICE_NAME` in `runtime.ini`.
 - **Unified Panel Version Management**: The panel version is maintained in the root `VERSION` file.
@@ -75,7 +75,7 @@ After initialization, you can start, stop, and restart each component from the p
 
 ### 6. Manage Configuration Files
 
-All configuration files are stored under the `config\` directory and can be edited on the panel "Settings" page.
+Panel config remains in `config\runtime.ini`, while Nginx/PHP/MySQL configs are located in their respective component directories. They can be edited on the panel "Settings" page.
 
 After modifying configuration files, you usually need to restart or reload the corresponding component for the changes to take effect.
 
@@ -95,22 +95,32 @@ WNMP_RUNTIME/
 │   ├── wnmpctl.py             # CLI controller, mainly for development and troubleshooting
 │   ├── panel/                 # Panel modules, frontend assets, path management, environment information
 │   └── *.py                   # Component control modules for Nginx, PHP, MySQL, logs, status, etc.
-├── config/                    # Centralized configuration directory
+├── config/                    # Panel configuration directory
 │   ├── runtime.ini            # Panel runtime configuration
-│   ├── nginx/                 # Nginx configuration and extension directories
-│   ├── php/                   # PHP configuration
-│   └── mysql/                 # MySQL configuration
-├── bin/                       # Binary files directory
+│   ├── nginx/                 # Nginx legacy config (migration source, preserved)
+│   ├── php/                   # PHP legacy config (migration source, preserved)
+│   └── mysql/                 # MySQL legacy config (migration source, preserved)
+├── bin/                       # Binary files and component config directory
 │   ├── python/                # Python runtime, required
 │   │   └── python.exe
 │   ├── nginx/                 # Nginx Web server
-│   │   └── nginx.exe
+│   │   ├── nginx.exe
+│   │   └── conf/              # Nginx active config directory
+│   │       ├── nginx.conf     # Main config
+│   │       ├── site.conf      # Default site config
+│   │       ├── vhosts/        # Virtual hosts directory
+│   │       └── custom/        # Extension config directory
+│   │           ├── http/      # HTTP-level extensions
+│   │           └── server/    # Server-level extensions
 │   ├── php/                   # PHP runtime
 │   │   ├── php.exe            # PHP CLI
-│   │   └── php-cgi.exe        # PHP-CGI FastCGI process
+│   │   ├── php-cgi.exe        # PHP-CGI FastCGI process
+│   │   ├── php.ini            # PHP active config
+│   │   └── php-cgi.ini        # PHP-CGI process config
 │   ├── mysql/                 # MySQL database
-│   │   └── bin/
-│   │       └── mysqld.exe     # MySQL server
+│   │   ├── bin/
+│   │   │   └── mysqld.exe     # MySQL server
+│   │   └── my.ini             # MySQL active config
 │   └── openssl/               # OpenSSL tool, optional
 │       └── openssl.exe
 ├── www/                       # Default site directory, generated during initialization
@@ -141,11 +151,11 @@ The following port settings are only used as default values for the first initia
 
 | Option | Default | Effective File After Initialization |
 |---|---|---|
-| `HTTP_PORT` | 80 | `config\nginx.conf` and the `listen` directive in `config\nginx\site.conf` |
+| `HTTP_PORT` | 80 | `bin\nginx\conf\site.conf` or `bin\nginx\conf\nginx.conf` `listen` directive |
 | `HTTPS_PORT` | 443 | SSL `listen` directive in the Nginx configuration |
 | `ENABLE_HTTPS` | 1 | Whether SSL `listen` exists in the Nginx configuration |
-| `PHP_CGI_PORT` | 9000 | `config\php\php-cgi.ini` |
-| `MYSQL_PORT` | 3306 | `config\mysql\my.ini` |
+| `PHP_CGI_PORT` | 9000 | `bin\php\php-cgi.ini` |
+| `MYSQL_PORT` | 3306 | `bin\mysql\my.ini` |
 
 > After initialization, changing port values in `runtime.ini` will not overwrite the generated component configuration files. Please edit the corresponding configuration files directly.
 
@@ -153,26 +163,26 @@ The following port settings are only used as default values for the first initia
 
 | Path | Description |
 |---|---|
-| `config\nginx.conf` | Main Nginx configuration file |
-| `config\nginx\site.conf` | Default site configuration |
-| `config\nginx\vhosts\` | Directory for adding independent site configurations. Files usually contain complete `server { ... }` blocks. |
-| `config\nginx\custom\http\` | HTTP-level extension directory, suitable for `upstream`, `map`, `gzip`, `log_format`, and other HTTP-level snippets |
-| `config\nginx\custom\server\` | Default site server-level extension directory, suitable for `location`, `rewrite`, `add_header`, and other server-level snippets |
+| `bin\nginx\conf\nginx.conf` | Main Nginx configuration file |
+| `bin\nginx\conf\site.conf` | Default site configuration |
+| `bin\nginx\conf\vhosts\` | Directory for adding independent site configurations. Files usually contain complete `server { ... }` blocks. |
+| `bin\nginx\conf\custom\http\` | HTTP-level extension directory, suitable for `upstream`, `map`, `gzip`, `log_format`, and other HTTP-level snippets |
+| `bin\nginx\conf\custom\server\` | Default site server-level extension directory, suitable for `location`, `rewrite`, `add_header`, and other server-level snippets |
 
-> `config\nginx\custom\server\` is used to append configuration snippets to the default site. It is **not** the place for adding independent sites. Use `config\nginx\vhosts\` for new independent sites.
+> `bin\nginx\conf\custom\server\` is used to append configuration snippets to the default site. It is **not** the place for adding independent sites. Use `bin\nginx\conf\vhosts\` for new independent sites.
 
 ### PHP Configuration
 
 | Path | Description |
 |---|---|
-| `config\php\php.ini` | PHP runtime configuration |
-| `config\php\php-cgi.ini` | PHP-CGI process configuration, including listening address and port |
+| `bin\php\php.ini` | PHP runtime configuration |
+| `bin\php\php-cgi.ini` | PHP-CGI process configuration, including listening address and port |
 
 ### MySQL Configuration
 
 | Path | Description |
 |---|---|
-| `config\mysql\my.ini` | Main MySQL configuration file |
+| `bin\mysql\my.ini` | Main MySQL configuration file |
 
 ## Common Operations
 
@@ -264,13 +274,13 @@ The launcher detected that the current Windows version is below the minimum requ
 
 ### Why do port changes in `runtime.ini` not take effect?
 
-Ports in `runtime.ini` are only used as default values for the first initialization. After initialization, edit the corresponding component configuration files directly, such as `config\nginx\site.conf`, `config\php\php-cgi.ini`, or `config\mysql\my.ini`.
+Ports in `runtime.ini` are only used as default values for the first initialization. After initialization, edit the corresponding component configuration files directly, such as `bin\nginx\conf\site.conf`, `bin\php\php-cgi.ini`, or `bin\mysql\my.ini`.
 
 ### Where should new Nginx site configurations be placed?
 
-Place new independent site configurations in `config\nginx\vhosts\`. Each file should contain a complete `server { ... }` block.
+Place new independent site configurations in `bin\nginx\conf\vhosts\`. Each file should contain a complete `server { ... }` block.
 
-If you only need to append `location`, `rewrite`, or similar snippets to the default site, place them in `config\nginx\custom\server\`.
+If you only need to append `location`, `rewrite`, or similar snippets to the default site, place them in `bin\nginx\conf\custom\server\`.
 
 ### Why do I need to restart or reload after modifying configuration files?
 

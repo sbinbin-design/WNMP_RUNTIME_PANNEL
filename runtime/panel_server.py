@@ -47,6 +47,12 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 from runtime.panel.paths import get_root_dir, get_panel_dir
+from runtime.wnmp_component_paths import (
+    get_nginx_conf_path, get_nginx_site_conf_path,
+    get_nginx_vhosts_dir,
+    get_php_ini_path, get_php_cgi_ini_path, get_mysql_ini_path,
+    get_runtime_ini_path,
+)
 
 _root_dir = get_root_dir()
 _panel_dir = get_panel_dir()
@@ -528,10 +534,17 @@ class PanelHandler(BaseHTTPRequestHandler):
 
         不执行 subprocess，不启动/停止任何服务，不返回敏感凭据。
         版本号来源：runtime/version.py（集中维护，优先读 VERSION 文件）。
+        同时返回关键路径信息（vhosts 等），前端优先使用后端返回值，
+        避免 P2 路径切换时前端硬编码路径漏改。
         """
         try:
             from runtime.version import get_panel_info
             info = get_panel_info()
+            # 路径收敛：通过统一路径模块获取 vhosts 路径，前端不再硬编码
+            vhosts_abs = get_nginx_vhosts_dir(_root_dir)
+            vhosts_rel = os.path.relpath(vhosts_abs, _root_dir).replace(os.sep, "/")
+            info["vhosts_rel"] = vhosts_rel
+            info["vhosts_abs"] = os.path.normpath(vhosts_abs)
             self.send_json({"success": True, **info})
         except Exception as e:
             # version.py 或 VERSION 文件异常时兜底返回
@@ -1001,13 +1014,14 @@ class PanelHandler(BaseHTTPRequestHandler):
         name = qs.get("name", [""])[0]
 
         # 白名单校验：允许 Nginx/PHP/MySQL 配置文件 + runtime.ini 运行器配置
+        # 路径收敛：通过统一路径模块获取配置文件路径
         config_map = {
-            "nginx": os.path.join(_root_dir, "config", "nginx.conf"),
-            "nginx-site": os.path.join(_root_dir, "config", "nginx", "site.conf"),
-            "php": os.path.join(_root_dir, "config", "php", "php.ini"),
-            "php-cgi": os.path.join(_root_dir, "config", "php", "php-cgi.ini"),
-            "mysql": os.path.join(_root_dir, "config", "mysql", "my.ini"),
-            "runtime": os.path.join(_root_dir, "config", "runtime.ini"),
+            "nginx": get_nginx_conf_path(_root_dir),
+            "nginx-site": get_nginx_site_conf_path(_root_dir),
+            "php": get_php_ini_path(_root_dir),
+            "php-cgi": get_php_cgi_ini_path(_root_dir),
+            "mysql": get_mysql_ini_path(_root_dir),
+            "runtime": get_runtime_ini_path(_root_dir),
         }
         if name not in config_map:
             self.send_json({"success": False, "message": "无效配置名称"}, 400)

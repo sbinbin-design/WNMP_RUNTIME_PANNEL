@@ -23,7 +23,9 @@ import io
 import json
 import time
 
-# Add parent directory (tool root) to sys.path so 'runtime.xxx' imports work
+# 修复导入顺序：必须先计算 _script_dir、_root_dir 并插入 sys.path，
+# 再执行 from runtime.xxx import ...，否则直接运行 python runtime/wnmpctl.py
+# 会报 ModuleNotFoundError: No module named 'runtime'
 _script_dir = os.path.dirname(os.path.abspath(__file__))
 _root_dir = os.path.normpath(os.path.join(_script_dir, ".."))
 if _root_dir not in sys.path:
@@ -34,6 +36,14 @@ try:
     os.chdir(_root_dir)
 except Exception:
     pass
+
+# sys.path 已初始化，现在可以安全导入 runtime 包
+from runtime.wnmp_component_paths import (
+    get_nginx_conf_path, get_nginx_site_conf_path,
+    get_php_ini_path, get_php_cgi_ini_path, get_mysql_ini_path,
+    get_nginx_vhosts_dir, get_nginx_custom_http_dir, get_nginx_custom_server_dir,
+    get_php_user_ini_path, get_mysql_user_ini_path,
+)
 
 # Ensure stdout/stderr use UTF-8 with error replacement
 # 使用安全的 reconfigure 方式，避免 I/O operation on closed file
@@ -82,6 +92,38 @@ def _ensure_directories(root_dir, logger=None):
             log_error(logger, "Failed to create directory: " + d)
             log_error(logger, "Error: " + str(e))
             raise Exception("Directory creation failed: " + d)
+
+
+def _ensure_config_layout_before_component_start(root_dir, cfg, logger):
+    """单组件启动前保障配置布局。
+
+    P2 启动前配置布局保障小收口：cmd_start() 已全量启动前调用，
+    但单组件 cmd_start_nginx/php/mysql 独立启动时也需要保障。
+
+    保障规则参见 ensure_component_configs_ready()：
+    - 创建必要目录
+    - 迁移旧 config 到新组件目录（只补缺失，不覆盖已有）
+    - 生成缺失的活跃配置文件
+
+    Args:
+        root_dir: 项目根目录
+        cfg: 配置对象
+        logger: 日志记录器
+
+    Returns:
+        tuple: (success: bool, message: str)
+    """
+    from runtime.wnmp_log import log_info, log_error
+    from runtime.wnmp_templates import ensure_component_configs_ready
+
+    log_info(logger, "Ensuring component config layout before starting...")
+    ok, msg = ensure_component_configs_ready(root_dir, cfg, logger)
+    if not ok:
+        log_error(logger, "Config layout check failed: " + msg)
+        print("ERROR: Config layout check failed: " + msg)
+        return False, msg
+    log_info(logger, "Config layout ready: " + msg)
+    return True, msg
 
 
 def _check_binaries(root_dir, logger):
@@ -388,42 +430,48 @@ def _do_first_time_init(root_dir, cfg, logger):
         print("   WEB_ROOT is custom directory, skipping default site.")
 
     # 7. Copy user config examples
+    # 路径收敛：通过统一路径模块获取 php.user.ini 和 my.user.ini 路径
     import shutil
     examples = [
-        ("config/php/php.user.ini.example", "config/php/php.user.ini"),
-        ("config/mysql/my.user.ini.example", "config/mysql/my.user.ini"),
+        ("config/php/php.user.ini.example", get_php_user_ini_path(root_dir)),
+        ("config/mysql/my.user.ini.example", get_mysql_user_ini_path(root_dir)),
     ]
     for example_src, user_dest in examples:
         src = os.path.join(root_dir, example_src)
-        dest = os.path.join(root_dir, user_dest)
+        dest = user_dest
         if os.path.isfile(src) and not os.path.isfile(dest):
             shutil.copy2(src, dest)
 
     # 8. Ensure nginx custom and vhosts directories
-    nginx_custom_http = os.path.join(root_dir, "config", "nginx", "custom", "http")
-    nginx_custom_server = os.path.join(root_dir, "config", "nginx", "custom", "server")
-    nginx_vhosts = os.path.join(root_dir, "config", "nginx", "vhosts")
+    # 路径收敛：通过统一路径模块获取目录路径
+    nginx_custom_http = get_nginx_custom_http_dir(root_dir)
+    nginx_custom_server = get_nginx_custom_server_dir(root_dir)
+    nginx_vhosts = get_nginx_vhosts_dir(root_dir)
     os.makedirs(nginx_custom_http, exist_ok=True)
     os.makedirs(nginx_custom_server, exist_ok=True)
     os.makedirs(nginx_vhosts, exist_ok=True)
 
     # 8b. Copy vhosts example files if not exist
+    # 路径收敛：目标路径通过统一路径模块推导，避免 P2 切换时漏改
     vhosts_examples = [
-        ("config/nginx/vhosts/example.local.conf.disabled", "config/nginx/vhosts/example.local.conf.disabled"),
-        ("config/nginx/vhosts/example-ssl.local.conf.disabled", "config/nginx/vhosts/example-ssl.local.conf.disabled"),
+        ("config/nginx/vhosts/example.local.conf.disabled", "example.local.conf.disabled"),
+        ("config/nginx/vhosts/example-ssl.local.conf.disabled", "example-ssl.local.conf.disabled"),
     ]
-    for example_src, vhost_dest in vhosts_examples:
+    for example_src, vhost_dest_name in vhosts_examples:
         src = os.path.join(root_dir, example_src)
-        dest = os.path.join(root_dir, vhost_dest)
+        # 目标路径从统一路径模块推导，不再硬编码 config/nginx/vhosts
+        dest = os.path.join(nginx_vhosts, vhost_dest_name)
         if os.path.isfile(src) and not os.path.isfile(dest):
             shutil.copy2(src, dest)
 
     # 8c. Ensure vhosts placeholder.conf exists
     vhosts_placeholder = os.path.join(nginx_vhosts, "placeholder.conf")
     if not os.path.isfile(vhosts_placeholder):
+        # 从绝对路径反推相对路径用于展示文案，不手写 config/nginx/vhosts
+        vhosts_rel = os.path.relpath(nginx_vhosts, root_dir).replace(os.sep, "/")
         with open(vhosts_placeholder, "w", encoding="utf-8") as f:
             f.write("# Nginx Virtual Hosts Placeholder\n")
-            f.write("# Place your complete server { ... } virtual host configs in config/nginx/vhosts/\n")
+            f.write("# Place your complete server {{ ... }} virtual host configs in {}/\n".format(vhosts_rel))
             f.write("# This file ensures nginx -t does not fail when the directory is empty.\n")
 
     # 9. Add to system PATH if configured
@@ -794,6 +842,18 @@ def cmd_start(root_dir, cfg, logger):
         print("ERROR: " + str(e))
         set_start_phase(root_dir, "failed")
         return 1
+
+    # 1.5 P2 配置路径归位修复：启动前保障配置布局
+    # 已有初始化环境直接启动时，新路径配置可能未迁移/未生成
+    from runtime.wnmp_templates import ensure_component_configs_ready
+    ok, msg = ensure_component_configs_ready(root_dir, cfg, logger)
+    if not ok:
+        log_error(logger, "Config layout check failed: " + msg)
+        print("ERROR: Config layout check failed: " + msg)
+        print("Please run 'python runtime/wnmpctl.py reset-config' to regenerate configs")
+        set_start_phase(root_dir, "failed")
+        return 1
+    log_info(logger, "Config layout check: " + msg)
 
     # 2. Check binaries
     ok, missing = _check_binaries(root_dir, logger)
@@ -1182,28 +1242,31 @@ def cmd_status(root_dir, cfg, logger):
 
 
 def _restore_config_backup(backup_dir, root_dir, logger, pre_existing_set=None):
-    """从备份目录恢复组件配置文件到 config 目录，并删除 reset 前不存在的半成品文件。
+    """从备份目录恢复组件配置文件，并删除 reset 前不存在的半成品文件。
 
     只恢复备份中存在的文件，不恢复 runtime.ini，不触碰 data/mysql、www、logs。
-    恢复时验证目标路径在 config 目录内，防止错误路径写入。
+    恢复时验证目标路径在 root_dir 内且无路径逃逸，防止错误路径写入。
+    以 root_dir 为统一安全基准计算相对路径，支持未来 bin/nginx/conf 等新路径。
     pre_existing_set: reset 前存在的目标配置文件绝对路径集合。
       对 reset 前不存在但本次生成出的目标配置文件，删除该半成品。
     返回 (ok, error_msg) 元组。
     """
     import shutil
-    config_dir = os.path.join(root_dir, "config")
-    # 安全检查：确保恢复路径在 config 目录内
-    config_dir_real = os.path.realpath(config_dir)
+    root_dir_real = os.path.realpath(root_dir)
     if not os.path.isdir(backup_dir):
         return False, "备份目录不存在: " + backup_dir
     for dirpath, dirnames, filenames in os.walk(backup_dir):
         for fname in filenames:
             src = os.path.join(dirpath, fname)
             rel = os.path.relpath(src, backup_dir)
-            dest = os.path.join(config_dir, rel)
+            # 安全校验：不得是绝对路径，不得包含 .. 逃逸
+            if os.path.isabs(rel) or rel.startswith("..") or ".." + os.sep in rel or "../" in rel or "..\\" in rel:
+                return False, "恢复路径逃逸，拒绝写入: " + rel
+            # 以 root_dir 为基准恢复，支持未来 bin/nginx/conf 等新路径
+            dest = os.path.join(root_dir, rel)
             dest_real = os.path.realpath(os.path.dirname(dest))
-            # 验证目标路径在 config 目录内
-            if not dest_real.startswith(config_dir_real):
+            # 验证目标路径在 root_dir 内
+            if not dest_real.startswith(root_dir_real):
                 return False, "恢复路径越界，拒绝写入: " + rel
             # 跳过 runtime.ini，不恢复面板配置
             if rel.replace("\\", "/") == "runtime.ini":
@@ -1219,12 +1282,13 @@ def _restore_config_backup(backup_dir, root_dir, logger, pre_existing_set=None):
     # 删除 reset 前不存在但本次生成出的半成品目标配置文件
     if pre_existing_set is not None:
         # 五个目标配置文件
+        # 路径收敛：通过统一路径模块获取配置文件路径
         target_files = [
-            os.path.join(root_dir, "config", "nginx.conf"),
-            os.path.join(root_dir, "config", "nginx", "site.conf"),
-            os.path.join(root_dir, "config", "php", "php.ini"),
-            os.path.join(root_dir, "config", "php", "php-cgi.ini"),
-            os.path.join(root_dir, "config", "mysql", "my.ini"),
+            get_nginx_conf_path(root_dir),
+            get_nginx_site_conf_path(root_dir),
+            get_php_ini_path(root_dir),
+            get_php_cgi_ini_path(root_dir),
+            get_mysql_ini_path(root_dir),
         ]
         for f in target_files:
             if f not in pre_existing_set and os.path.isfile(f):
@@ -1263,11 +1327,12 @@ def cmd_reset_config(root_dir, cfg, logger):
 
     if not force:
         print("This will reset the following component config files to defaults:")
-        print("  - config/nginx.conf")
-        print("  - config/nginx/site.conf")
-        print("  - config/php/php.ini")
-        print("  - config/php/php-cgi.ini")
-        print("  - config/mysql/my.ini")
+        # P2：配置文件路径提示切换到新组件配置路径
+        print("  - bin/nginx/conf/nginx.conf")
+        print("  - bin/nginx/conf/site.conf")
+        print("  - bin/php/php.ini")
+        print("  - bin/php/php-cgi.ini")
+        print("  - bin/mysql/my.ini")
         print()
         print("This does NOT delete MySQL data, website files, logs, or panel config (runtime.ini).")
         print("To proceed, run: bin\\python\\python.exe runtime\\wnmpctl.py reset-config --force")
@@ -1278,12 +1343,13 @@ def cmd_reset_config(root_dir, cfg, logger):
     print("Resetting component config files from templates...")
 
     # 将被重置的组件配置文件列表（不含 runtime.ini）
+    # 路径收敛：通过统一路径模块获取配置文件路径
     config_files_to_reset = [
-        os.path.join(root_dir, "config", "nginx.conf"),
-        os.path.join(root_dir, "config", "nginx", "site.conf"),
-        os.path.join(root_dir, "config", "php", "php.ini"),
-        os.path.join(root_dir, "config", "php", "php-cgi.ini"),
-        os.path.join(root_dir, "config", "mysql", "my.ini"),
+        get_nginx_conf_path(root_dir),
+        get_nginx_site_conf_path(root_dir),
+        get_php_ini_path(root_dir),
+        get_php_cgi_ini_path(root_dir),
+        get_mysql_ini_path(root_dir),
     ]
 
     # 第一步：记录 reset 前目标配置文件是否存在（用于回滚时删除半成品）
@@ -1299,8 +1365,13 @@ def cmd_reset_config(root_dir, cfg, logger):
         try:
             os.makedirs(backup_dir, exist_ok=True)
             for f in existing_files:
-                rel = os.path.relpath(f, os.path.join(root_dir, "config"))
-                dest = os.path.join(backup_dir, rel)
+                # 以 root_dir 为统一安全基准计算相对路径，支持未来 bin/nginx/conf 等新路径
+                # 备份目录内部保留原始相对结构（如 config/nginx.conf 或 bin/nginx/conf/nginx.conf）
+                safe_rel = os.path.relpath(f, root_dir)
+                # 安全校验：不得是绝对路径，不得包含 .. 逃逸
+                if os.path.isabs(safe_rel) or safe_rel.startswith("..") or ".." + os.sep in safe_rel or "../" in safe_rel or "..\\" in safe_rel:
+                    raise ValueError("备份路径逃逸，拒绝处理: " + safe_rel)
+                dest = os.path.join(backup_dir, safe_rel)
                 dest_dir = os.path.dirname(dest)
                 if not os.path.isdir(dest_dir):
                     os.makedirs(dest_dir, exist_ok=True)
@@ -1447,6 +1518,12 @@ def cmd_start_nginx(root_dir, cfg, logger):
     """Handle start-nginx command - start Nginx only."""
     from runtime.wnmp_log import log_info, log_error
     from runtime.wnmp_nginx import start_nginx
+
+    # P2 启动前配置布局保障小收口：单组件启动前也需要保障配置布局
+    ok, msg = _ensure_config_layout_before_component_start(root_dir, cfg, logger)
+    if not ok:
+        return 1
+
     log_info(logger, "=== Starting Nginx ===")
     ok, result = start_nginx(root_dir, cfg, logger)
     if ok:
@@ -1487,6 +1564,12 @@ def cmd_restart_nginx(root_dir, cfg, logger):
         print("ERROR: Nginx stop failed, aborting restart: " + str(result))
         print("请先解决停止失败问题，再尝试重启")
         return 1
+
+    # P2 启动前配置布局保障小收口：restart 时 stop 成功后 start 前也需要保障
+    ok, msg = _ensure_config_layout_before_component_start(root_dir, cfg, logger)
+    if not ok:
+        return 1
+
     ok, result = start_nginx(root_dir, cfg, logger)
     if ok:
         print("Nginx: restarted")
@@ -1516,6 +1599,12 @@ def cmd_start_php(root_dir, cfg, logger):
     """Handle start-php command - start PHP-CGI only."""
     from runtime.wnmp_log import log_info, log_error
     from runtime.wnmp_php import start_php_cgi
+
+    # P2 启动前配置布局保障小收口：单组件启动前也需要保障配置布局
+    ok, msg = _ensure_config_layout_before_component_start(root_dir, cfg, logger)
+    if not ok:
+        return 1
+
     log_info(logger, "=== Starting PHP-CGI ===")
     ok, result = start_php_cgi(root_dir, cfg, logger)
     if ok:
@@ -1550,6 +1639,12 @@ def cmd_restart_php(root_dir, cfg, logger):
     ok, result = stop_php_cgi(root_dir, cfg, logger)
     if not ok:
         log_error(logger, "PHP-CGI stop failed: " + str(result))
+
+    # P2 启动前配置布局保障小收口：restart 时 start 前也需要保障
+    ok, msg = _ensure_config_layout_before_component_start(root_dir, cfg, logger)
+    if not ok:
+        return 1
+
     ok, result = start_php_cgi(root_dir, cfg, logger)
     if ok:
         print("PHP-CGI: restarted")
@@ -1564,6 +1659,12 @@ def cmd_start_mysql(root_dir, cfg, logger):
     """Handle start-mysql command - start MySQL only."""
     from runtime.wnmp_log import log_info, log_error
     from runtime.wnmp_mysql import start_mysql
+
+    # P2 启动前配置布局保障小收口：单组件启动前也需要保障配置布局
+    ok, msg = _ensure_config_layout_before_component_start(root_dir, cfg, logger)
+    if not ok:
+        return 1
+
     log_info(logger, "=== Starting MySQL ===")
     ok, result = start_mysql(root_dir, cfg, logger)
     if ok:
@@ -1602,6 +1703,12 @@ def cmd_restart_mysql(root_dir, cfg, logger):
     ok, result = stop_mysql(root_dir, cfg, logger)
     if not ok:
         log_error(logger, "MySQL stop failed: " + str(result))
+
+    # P2 启动前配置布局保障小收口：restart 时 start 前也需要保障
+    ok, msg = _ensure_config_layout_before_component_start(root_dir, cfg, logger)
+    if not ok:
+        return 1
+
     ok, result = start_mysql(root_dir, cfg, logger)
     if ok:
         print("MySQL: restarted")

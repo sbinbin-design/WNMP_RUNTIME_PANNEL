@@ -18,12 +18,14 @@ from runtime.wnmp_process import (
     get_process_image_path, get_process_name, get_pid_detail
 )
 from runtime.wnmp_path import to_forward_slash
+from runtime.wnmp_component_paths import get_nginx_conf_path, get_nginx_vhosts_dir
 
 
 def test_nginx_config(root_dir, cfg, logger):
     """执行 nginx -t 测试配置。增加 timeout=15 和 cwd=root_dir，防止无限等待。"""
     nginx_exe = os.path.join(root_dir, "bin", "nginx", "nginx.exe")
-    nginx_conf = os.path.join(root_dir, "config", "nginx.conf")
+    # 路径收敛：通过统一路径模块获取 nginx 配置路径
+    nginx_conf = get_nginx_conf_path(root_dir)
     cmd = [nginx_exe, "-p", root_dir, "-t", "-c", nginx_conf]
     try:
         result = subprocess.run(
@@ -41,8 +43,10 @@ def test_nginx_config(root_dir, cfg, logger):
                 match = re.search(r'vhosts[\\/][^"\s:]+', error_msg)
                 if match:
                     bad_file = match.group(0).replace("\\", "/")
+                    # P2：vhosts 目录已切换到 bin/nginx/conf/vhosts/
+                    vhosts_display = os.path.relpath(get_nginx_vhosts_dir(root_dir), root_dir).replace(os.sep, "/")
                     error_msg = "检测到虚拟主机配置错误！\n"
-                    error_msg += "请检查: config/nginx/vhosts/" + os.path.basename(bad_file) + "\n"
+                    error_msg += "请检查: {}/{}\n".format(vhosts_display, os.path.basename(bad_file))
                     error_msg += "Nginx 错误详情:\n" + (result.stderr or result.stdout)
             # 返回原始 nginx -t 错误摘要，不含前缀，由调用方统一加前缀
             return False, error_msg
@@ -74,7 +78,8 @@ def start_nginx(root_dir, cfg, logger):
     from runtime.wnmp_state import mark_component_config_applied, compute_component_config_hash
 
     nginx_exe = os.path.join(root_dir, "bin", "nginx", "nginx.exe")
-    nginx_conf = os.path.join(root_dir, "config", "nginx.conf")
+    # 路径收敛：通过统一路径模块获取 nginx 配置路径
+    nginx_conf = get_nginx_conf_path(root_dir)
     pid_dir = os.path.join(root_dir, "runtime", "pids")
 
     # 获取实际 listen 列表（desired ports）
@@ -388,7 +393,8 @@ def stop_nginx(root_dir, cfg, logger):
     log_info(logger, "Permission context: current_process_is_admin={}".format(current_admin))
 
     nginx_exe = os.path.join(root_dir, "bin", "nginx", "nginx.exe")
-    nginx_conf = os.path.join(root_dir, "config", "nginx.conf")
+    # 路径收敛：通过统一路径模块获取 nginx 配置路径
+    nginx_conf = get_nginx_conf_path(root_dir)
     pid_dir = os.path.join(root_dir, "runtime", "pids")
 
     # ---- 收集所有可能需要检查的端口 ----
@@ -759,7 +765,8 @@ def reload_nginx(root_dir, cfg, logger):
     from runtime.wnmp_state import mark_component_config_applied, get_component_config_apply_state
 
     nginx_exe = os.path.join(root_dir, "bin", "nginx", "nginx.exe")
-    nginx_conf = os.path.join(root_dir, "config", "nginx.conf")
+    # 路径收敛：通过统一路径模块获取 nginx 配置路径
+    nginx_conf = get_nginx_conf_path(root_dir)
     pid_dir = os.path.join(root_dir, "runtime", "pids")
 
     # 获取 desired ports

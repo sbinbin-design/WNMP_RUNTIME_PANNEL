@@ -20,6 +20,7 @@ from runtime.wnmp_process import (
     get_process_image_path, get_process_name, get_pid_detail
 )
 from runtime.wnmp_path import resolve_path, to_forward_slash
+from runtime.wnmp_component_paths import get_mysql_ini_path
 
 
 MYSQL_PASSWORD_FILE = "root-password.txt"
@@ -69,6 +70,7 @@ def save_root_password(root_dir, password, host=None, port=None):
 
     注意：此函数仅在初始化时由 Panel 通过临时文件传递密码，
     不再作为长期持久化存储。保留函数签名以兼容旧逻辑。
+    root-password.txt 保留在 config/mysql/ 下，属于辅助文件，非组件活跃配置。
     """
     pwd_file = get_password_file_path(root_dir)
     os.makedirs(os.path.dirname(pwd_file), exist_ok=True)
@@ -137,7 +139,8 @@ def _get_mysql_exes(root_dir):
         "mysqld": os.path.join(root_dir, "bin", "mysql", "bin", "mysqld.exe"),
         "mysql": os.path.join(root_dir, "bin", "mysql", "bin", "mysql.exe"),
         "mysqladmin": os.path.join(root_dir, "bin", "mysql", "bin", "mysqladmin.exe"),
-        "my_ini": os.path.join(root_dir, "config", "mysql", "my.ini"),
+        # 路径收敛：通过统一路径模块获取 my.ini 路径
+        "my_ini": get_mysql_ini_path(root_dir),
     }
 
 
@@ -631,7 +634,7 @@ def _confirm_mysql_listener(root_dir, mysql_host, mysql_port, timeout, proc_pid,
 def start_mysql(root_dir, cfg, logger, panel_result_file=None):
     """Start MySQL.
 
-    MySQL 端口优先从 config/mysql/my.ini 解析，解析失败回退到 runtime.ini。
+    MySQL 端口优先从 bin/mysql/my.ini 解析，解析失败回退到 runtime.ini。
     panel_result_file: Panel 临时结果文件路径，安全初始化生成密码后立即写入，
                        即使后续端口等待超时，Panel 也能获取已生成的 root 密码。
     """
