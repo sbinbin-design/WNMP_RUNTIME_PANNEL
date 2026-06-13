@@ -1,3 +1,5 @@
+## English Version
+You can view the English version of this README [here](README_EN.md).
 # WNMP Runtime Panel
 
 一个面向 Windows 的本地 Nginx / PHP-CGI / MySQL 运行环境控制面板。
@@ -289,3 +291,6 @@ Panel Server 日志：`logs\panel\panel_server.log`；运行时日志：`logs\ru
 
 - **项目官网**：[https://dacat.cc/wnmp.html](https://dacat.cc/wnmp.html)
 - **技术支持 / 作者主页**：[https://dacat.cc](https://dacat.cc)
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

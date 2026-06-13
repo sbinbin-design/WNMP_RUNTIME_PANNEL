@@ -1,3 +1,5 @@
+## 中文版
+You can view the Chinese version of this README [here](README.md).
 # WNMP Runtime Panel
 
 A local runtime control panel for Windows-based Nginx / PHP-CGI / MySQL environments.
